@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BLUE = '#2C5F8D';
 const CREAM = '#F9F2EC';
@@ -55,14 +56,20 @@ export default function GetStartedScreen() {
 
           <TouchableOpacity 
             style={styles.signupButton}
-            onPress={() => router.replace('/(auth)/signup')}
+            onPress={async () => {
+              await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+              router.replace('/(auth)/signup');
+            }}
           >
             <Text style={styles.signupButtonText}>Create Account</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.loginButton}
-            onPress={() => router.replace('/(auth)/login')}
+            onPress={async () => {
+              await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+              router.replace('/(auth)/login');
+            }}
           >
             <Text style={styles.loginButtonText}>I Already Have an Account</Text>
           </TouchableOpacity>
