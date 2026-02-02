@@ -24,19 +24,31 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Pass',
+          title: 'Maslow Pass',
         }}
       />
       <Tabs.Screen
         name="control"
         options={{
-          title: 'Control',
+          title: 'Controls',
+        }}
+      />
+      <Tabs.Screen
+        name="locations"
+        options={{
+          title: 'Locations',
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'You',
+          title: 'Account',
         }}
       />
     </Tabs>

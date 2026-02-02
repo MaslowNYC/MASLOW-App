@@ -1,12 +1,14 @@
 
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import * as Haptics from 'expo-haptics';
 
 const BLUE = '#2C5F8D';
 const CREAM = '#F9F2EC';
 const GOLD = '#C5A059';
+const DARK = '#1A202C';
 
 export default function ControlScreen() {
   // Lighting state
@@ -26,6 +28,18 @@ export default function ControlScreen() {
   // Session timer
   const [sessionSeconds, setSessionSeconds] = useState(0);
 
+  // Animation
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Fade in on mount
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   // Session timer effect
   useEffect(() => {
     const timer = setInterval(() => {
@@ -43,7 +57,8 @@ export default function ControlScreen() {
       return () => clearTimeout(timer);
     } else if (uvCountdown === 0 && uvCycleActive) {
       setUvCycleActive(false);
-      Alert.alert('UV Cycle Complete', 'Air sanitization finished!');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('✨ UV Cycle Complete', 'Air sanitization finished!');
     }
   }, [uvCountdown, uvCycleActive]);
 
@@ -52,8 +67,9 @@ export default function ControlScreen() {
   const seconds = sessionSeconds % 60;
   const sessionTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-  // Lighting presets
+  // Lighting presets with haptics
   const applyLightingPreset = (preset) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLightingPreset(preset);
     switch(preset) {
       case 'relaxing':
@@ -75,181 +91,237 @@ export default function ControlScreen() {
     }
   };
 
-  // UV cycle
+  // UV cycle with haptics
   const startUvCycle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setUvCycleActive(true);
     setUvCountdown(30);
   };
 
+  // Soundscape change with haptics
+  const changeSoundscape = (option) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSoundscape(option);
+  };
+
+  // Fan speed with haptics
+  const changeFanSpeed = (speed) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFanSpeed(speed);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Restroom Controls</Text>
-          <Text style={styles.subtitle}>Customize your experience</Text>
-        </View>
-
-        {/* Session Timer */}
-        <View style={styles.section}>
-          <View style={styles.timerCard}>
-            <Text style={styles.timerLabel}>Session Time</Text>
-            <Text style={styles.timerDisplay}>{sessionTime}</Text>
-            <TouchableOpacity 
-              style={styles.endButton}
-              onPress={() => Alert.alert('End Session', 'This will unlock the door for the next person.')}
-            >
-              <Text style={styles.endButtonText}>End Session</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Lighting Controls */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💡 Lighting</Text>
+      <Animated.View style={[styles.fadeContainer, { opacity: fadeAnim }]}>
+        <ScrollView 
+          style={styles.scroll} 
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           
-          <View style={styles.control}>
-            <Text style={styles.controlLabel}>Brightness: {brightness}%</Text>
-            <Slider
-              value={brightness}
-              onValueChange={setBrightness}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              minimumTrackTintColor={BLUE}
-              maximumTrackTintColor="#E5E7EB"
-              thumbTintColor={BLUE}
-            />
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Restroom Controls</Text>
+            <Text style={styles.subtitle}>Customize your experience</Text>
           </View>
 
-          <View style={styles.control}>
-            <Text style={styles.controlLabel}>
-              Temperature: {temperature < 3000 ? 'Warm' : temperature > 5000 ? 'Cool' : 'Neutral'}
-            </Text>
-            <Slider
-              value={temperature}
-              onValueChange={setTemperature}
-              minimumValue={2200}
-              maximumValue={6500}
-              step={100}
-              minimumTrackTintColor={GOLD}
-              maximumTrackTintColor="#E5E7EB"
-              thumbTintColor={GOLD}
-            />
-          </View>
-
-          <Text style={styles.presetLabel}>Presets:</Text>
-          <View style={styles.presetRow}>
-            <TouchableOpacity 
-              style={[styles.presetButton, lightingPreset === 'relaxing' && styles.presetButtonActive]}
-              onPress={() => applyLightingPreset('relaxing')}
-            >
-              <Text style={[styles.presetText, lightingPreset === 'relaxing' && styles.presetTextActive]}>
-                Relaxing
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.presetButton, lightingPreset === 'energizing' && styles.presetButtonActive]}
-              onPress={() => applyLightingPreset('energizing')}
-            >
-              <Text style={[styles.presetText, lightingPreset === 'energizing' && styles.presetTextActive]}>
-                Energizing
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.presetRow}>
-            <TouchableOpacity 
-              style={[styles.presetButton, lightingPreset === 'mirror' && styles.presetButtonActive]}
-              onPress={() => applyLightingPreset('mirror')}
-            >
-              <Text style={[styles.presetText, lightingPreset === 'mirror' && styles.presetTextActive]}>
-                Mirror
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.presetButton, lightingPreset === 'night' && styles.presetButtonActive]}
-              onPress={() => applyLightingPreset('night')}
-            >
-              <Text style={[styles.presetText, lightingPreset === 'night' && styles.presetTextActive]}>
-                Night
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Audio Controls */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎵 Audio</Text>
-          
-          <View style={styles.control}>
-            <Text style={styles.controlLabel}>Volume: {volume}%</Text>
-            <Slider
-              value={volume}
-              onValueChange={setVolume}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              minimumTrackTintColor={BLUE}
-              maximumTrackTintColor="#E5E7EB"
-              thumbTintColor={BLUE}
-            />
-          </View>
-
-          <Text style={styles.presetLabel}>Soundscape:</Text>
-          {['nature', 'whitenoise', 'lofi', 'silence'].map(option => (
-            <TouchableOpacity
-              key={option}
-              style={styles.radioOption}
-              onPress={() => setSoundscape(option)}
-            >
-              <View style={styles.radio}>
-                {soundscape === option && <View style={styles.radioSelected} />}
-              </View>
-              <Text style={styles.radioText}>
-                {option === 'nature' && '🌿 Nature Sounds'}
-                {option === 'whitenoise' && '⚪ White Noise'}
-                {option === 'lofi' && '🎧 Lo-Fi Beats'}
-                {option === 'silence' && '🔇 Silence'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Air Quality Controls */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💨 Air Quality</Text>
-          
-          <TouchableOpacity 
-            style={[styles.uvButton, uvCycleActive && styles.uvButtonActive]}
-            onPress={startUvCycle}
-            disabled={uvCycleActive}
-          >
-            <Text style={styles.uvButtonText}>
-              {uvCycleActive ? `UV Cycle Running... ${uvCountdown}s` : 'Run UV Sanitization'}
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={styles.presetLabel}>Ventilation:</Text>
-          <View style={styles.presetRow}>
-            {[0, 1, 2, 3].map(speed => (
-              <TouchableOpacity
-                key={speed}
-                style={[styles.fanButton, fanSpeed === speed && styles.fanButtonActive]}
-                onPress={() => setFanSpeed(speed)}
+          {/* Session Timer - Larger, more prominent */}
+          <View style={styles.timerSection}>
+            <View style={styles.timerCard}>
+              <Text style={styles.timerLabel}>Session Time</Text>
+              <Text style={styles.timerDisplay}>{sessionTime}</Text>
+              <TouchableOpacity 
+                style={styles.endButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  Alert.alert('End Session', 'This will unlock the door for the next person.');
+                }}
               >
-                <Text style={[styles.fanText, fanSpeed === speed && styles.fanTextActive]}>
-                  {speed === 0 ? 'Off' : speed === 1 ? 'Low' : speed === 2 ? 'Med' : 'High'}
+                <Text style={styles.endButtonText}>End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Lighting Controls */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>💡</Text>
+              <Text style={styles.sectionTitle}>Lighting</Text>
+            </View>
+            
+            <View style={styles.control}>
+              <View style={styles.controlHeader}>
+                <Text style={styles.controlLabel}>Brightness</Text>
+                <Text style={styles.controlValue}>{brightness}%</Text>
+              </View>
+              <Slider
+                value={brightness}
+                onValueChange={setBrightness}
+                onSlidingComplete={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                minimumTrackTintColor={BLUE}
+                maximumTrackTintColor="#E5E7EB"
+                thumbTintColor={BLUE}
+                style={styles.slider}
+              />
+            </View>
+
+            <View style={styles.control}>
+              <View style={styles.controlHeader}>
+                <Text style={styles.controlLabel}>Temperature</Text>
+                <Text style={styles.controlValue}>
+                  {temperature < 3000 ? '🔥 Warm' : temperature > 5000 ? '❄️ Cool' : '☀️ Neutral'}
                 </Text>
+              </View>
+              <Slider
+                value={temperature}
+                onValueChange={setTemperature}
+                onSlidingComplete={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                minimumValue={2200}
+                maximumValue={6500}
+                step={100}
+                minimumTrackTintColor={GOLD}
+                maximumTrackTintColor="#E5E7EB"
+                thumbTintColor={GOLD}
+                style={styles.slider}
+              />
+            </View>
+
+            <Text style={styles.presetLabel}>Quick Presets</Text>
+            <View style={styles.presetGrid}>
+              {[
+                { id: 'relaxing', label: '🌙 Relaxing', color: '#7C3AED' },
+                { id: 'energizing', label: '⚡ Energizing', color: '#F59E0B' },
+                { id: 'mirror', label: '💄 Mirror', color: '#EC4899' },
+                { id: 'night', label: '🌃 Night', color: '#3B82F6' },
+              ].map(preset => (
+                <TouchableOpacity 
+                  key={preset.id}
+                  style={[
+                    styles.presetButton, 
+                    lightingPreset === preset.id && { 
+                      backgroundColor: preset.color,
+                      transform: [{ scale: 1.05 }]
+                    }
+                  ]}
+                  onPress={() => applyLightingPreset(preset.id)}
+                >
+                  <Text style={[
+                    styles.presetText, 
+                    lightingPreset === preset.id && styles.presetTextActive
+                  ]}>
+                    {preset.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Audio Controls */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>🎵</Text>
+              <Text style={styles.sectionTitle}>Audio</Text>
+            </View>
+            
+            <View style={styles.control}>
+              <View style={styles.controlHeader}>
+                <Text style={styles.controlLabel}>Volume</Text>
+                <Text style={styles.controlValue}>{volume}%</Text>
+              </View>
+              <Slider
+                value={volume}
+                onValueChange={setVolume}
+                onSlidingComplete={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                minimumTrackTintColor={BLUE}
+                maximumTrackTintColor="#E5E7EB"
+                thumbTintColor={BLUE}
+                style={styles.slider}
+              />
+            </View>
+
+            <Text style={styles.presetLabel}>Soundscape</Text>
+            {[
+              { id: 'nature', label: '🌿 Nature Sounds', desc: 'Forest ambience' },
+              { id: 'whitenoise', label: '⚪ White Noise', desc: 'Focus & calm' },
+              { id: 'lofi', label: '🎧 Lo-Fi Beats', desc: 'Chill vibes' },
+              { id: 'silence', label: '🔇 Silence', desc: 'Peace & quiet' },
+            ].map(option => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.radioOption,
+                  soundscape === option.id && styles.radioOptionActive
+                ]}
+                onPress={() => changeSoundscape(option.id)}
+              >
+                <View style={styles.radio}>
+                  {soundscape === option.id && <View style={styles.radioSelected} />}
+                </View>
+                <View style={styles.radioTextContainer}>
+                  <Text style={styles.radioText}>{option.label}</Text>
+                  <Text style={styles.radioDesc}>{option.desc}</Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
-        </View>
 
-      </ScrollView>
+          {/* Air Quality Controls */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>💨</Text>
+              <Text style={styles.sectionTitle}>Air Quality</Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.uvButton, uvCycleActive && styles.uvButtonActive]}
+              onPress={startUvCycle}
+              disabled={uvCycleActive}
+            >
+              <Text style={styles.uvButtonIcon}>{uvCycleActive ? '⏳' : '✨'}</Text>
+              <Text style={styles.uvButtonText}>
+                {uvCycleActive ? `UV Cycle Running... ${uvCountdown}s` : 'Run UV Sanitization (30s)'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.presetLabel}>Ventilation</Text>
+            <View style={styles.fanGrid}>
+              {[
+                { speed: 0, label: 'Off', icon: '⭕' },
+                { speed: 1, label: 'Low', icon: '💨' },
+                { speed: 2, label: 'Med', icon: '🌬️' },
+                { speed: 3, label: 'High', icon: '🌪️' },
+              ].map(option => (
+                <TouchableOpacity
+                  key={option.speed}
+                  style={[
+                    styles.fanButton, 
+                    fanSpeed === option.speed && styles.fanButtonActive
+                  ]}
+                  onPress={() => changeFanSpeed(option.speed)}
+                >
+                  <Text style={styles.fanIcon}>{option.icon}</Text>
+                  <Text style={[
+                    styles.fanText, 
+                    fanSpeed === option.speed && styles.fanTextActive
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Bottom padding */}
+          <View style={{ height: 40 }} />
+
+        </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -259,6 +331,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: CREAM,
   },
+  fadeContainer: {
+    flex: 1,
+  },
   scroll: {
     flex: 1,
   },
@@ -266,159 +341,234 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
     color: BLUE,
     marginBottom: 4,
   },
   subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  timerSection: {
+    marginBottom: 20,
+  },
+  timerCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: BLUE,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  timerLabel: {
     fontSize: 14,
-    color: '#4A5568',
+    color: '#6B7280',
+    marginBottom: 8,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  timerDisplay: {
+    fontSize: 64,
+    fontWeight: '700',
+    color: BLUE,
+    fontFamily: 'monospace',
+    marginBottom: 20,
+  },
+  endButton: {
+    backgroundColor: BLUE,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
+  endButtonText: {
+    color: CREAM,
+    fontWeight: '700',
+    fontSize: 16,
   },
   section: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: `${BLUE}10`,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: BLUE,
-    marginBottom: 16,
-  },
-  control: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
   },
+  sectionIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: DARK,
+  },
+  control: {
+    marginBottom: 24,
+  },
+  controlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   controlLabel: {
-    fontSize: 14,
-    color: '#4A5568',
-    marginBottom: 8,
-    fontWeight: '500',
+    fontSize: 16,
+    color: DARK,
+    fontWeight: '600',
+  },
+  controlValue: {
+    fontSize: 16,
+    color: BLUE,
+    fontWeight: '700',
+  },
+  slider: {
+    height: 40,
   },
   presetLabel: {
     fontSize: 14,
-    color: '#4A5568',
+    color: '#6B7280',
     marginBottom: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  presetRow: {
+  presetGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 10,
   },
   presetButton: {
     flex: 1,
-    backgroundColor: CREAM,
+    minWidth: '45%',
+    backgroundColor: '#F3F4F6',
     borderWidth: 2,
-    borderColor: BLUE,
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
   },
-  presetButtonActive: {
-    backgroundColor: BLUE,
-  },
   presetText: {
-    color: BLUE,
+    color: DARK,
     fontWeight: '600',
-    fontSize: 13,
+    fontSize: 14,
   },
   presetTextActive: {
-    color: CREAM,
+    color: 'white',
   },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#F9FAFB',
   },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  radioOptionActive: {
+    backgroundColor: '#EBF5FF',
     borderWidth: 2,
     borderColor: BLUE,
-    marginRight: 12,
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: BLUE,
+    marginRight: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: BLUE,
   },
+  radioTextContainer: {
+    flex: 1,
+  },
   radioText: {
-    fontSize: 15,
-    color: '#4A5568',
+    fontSize: 16,
+    color: DARK,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  radioDesc: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   uvButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 16,
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    paddingVertical: 20,
     alignItems: 'center',
     marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   uvButtonActive: {
-    backgroundColor: '#FF9800',
+    backgroundColor: '#F59E0B',
+  },
+  uvButtonIcon: {
+    fontSize: 24,
   },
   uvButtonText: {
     color: 'white',
-    fontWeight: '600',
-    fontSize: 15,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  fanGrid: {
+    flexDirection: 'row',
+    gap: 10,
   },
   fanButton: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: '#F3F4F6',
     borderWidth: 2,
-    borderColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 10,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   fanButtonActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  fanIcon: {
+    fontSize: 24,
+    marginBottom: 4,
   },
   fanText: {
-    color: '#4CAF50',
+    color: DARK,
     fontWeight: '600',
     fontSize: 13,
   },
   fanTextActive: {
     color: 'white',
-  },
-  timerCard: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  timerLabel: {
-    fontSize: 14,
-    color: '#4A5568',
-    marginBottom: 8,
-  },
-  timerDisplay: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: BLUE,
-    fontFamily: 'monospace',
-    marginBottom: 16,
-  },
-  endButton: {
-    backgroundColor: 'white',
-    borderWidth: 2,
-    borderColor: BLUE,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-  },
-  endButtonText: {
-    color: BLUE,
-    fontWeight: '600',
-    fontSize: 14,
   },
 });
