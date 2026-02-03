@@ -1,15 +1,28 @@
-
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const BLUE = '#2C5F8D';
 const CREAM = '#F9F2EC';
 const GOLD = '#C5A059';
 const DARK = '#1A202C';
 
+export interface VisitSettings {
+  lighting: string;
+  audio: string;
+}
+
+export interface Visit {
+  id: number;
+  location_name: string;
+  address: string;
+  entry_time: Date;
+  duration_minutes: number;
+  settings: VisitSettings;
+}
+
 // Mock data - replace with real Supabase query later
-const MOCK_HISTORY = [
+const MOCK_HISTORY: Visit[] = [
   {
     id: 1,
     location_name: 'SoHo - Men\'s',
@@ -53,23 +66,26 @@ const MOCK_HISTORY = [
 ];
 
 export default function HistoryScreen() {
-  const [history, setHistory] = useState(MOCK_HISTORY);
-  
+  const [history, setHistory] = useState<Visit[]>(MOCK_HISTORY);
+
   // Calculate stats
   const thisMonthVisits = history.length;
-  const uniqueLocations = new Set(history.map(h => h.location_name)).size;
-  const avgDuration = Math.round(
-    history.reduce((sum, h) => sum + h.duration_minutes, 0) / history.length
-  );
-  const mostVisited = history.reduce((acc, h) => {
-    acc[h.location_name] = (acc[h.location_name] || 0) + 1;
+  const uniqueLocations = new Set(history.map((h) => h.location_name)).size;
+  const avgDuration =
+    history.length > 0
+      ? Math.round(
+          history.reduce((sum, h) => sum + h.duration_minutes, 0) / history.length
+        )
+      : 0;
+  const mostVisited = history.reduce<Record<string, number>>((acc, h) => {
+    acc[h.location_name] = (acc[h.location_name] ?? 0) + 1;
     return acc;
   }, {});
   const topLocation = Object.entries(mostVisited).sort((a, b) => b[1] - a[1])[0];
 
-  const formatTime = (date) => {
+  const formatTime = (date: Date): string => {
     const now = new Date();
-    const diff = now - date;
+    const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
@@ -111,12 +127,14 @@ export default function HistoryScreen() {
               <Text style={styles.statLabel}>Avg Minutes</Text>
             </View>
           </View>
-          <View style={styles.topLocation}>
-            <Text style={styles.topLocationLabel}>Most visited:</Text>
-            <Text style={styles.topLocationName}>
-              {topLocation[0]} ({topLocation[1]}x)
-            </Text>
-          </View>
+          {topLocation && (
+            <View style={styles.topLocation}>
+              <Text style={styles.topLocationLabel}>Most visited:</Text>
+              <Text style={styles.topLocationName}>
+                {topLocation[0]} ({topLocation[1]}x)
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Recent Activity */}
