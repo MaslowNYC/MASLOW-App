@@ -1,153 +1,202 @@
-
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../lib/supabase';
+import { colors, spacing } from '../../src/theme';
+import { MaslowCard } from '../../src/components';
+import { useHaptics } from '../../src/hooks/useHaptics';
 
-const BLUE = '#2C5F8D';
-const CREAM = '#F9F2EC';
-const GOLD = '#C5A059';
-const DARK = '#1A202C';
-
-// Mock data - replace with real Supabase query later
-const MOCK_LOCATIONS = [
-  {
-    id: 1,
-    name: 'SoHo - Men\'s',
-    address: '123 Spring St, New York, NY 10012',
-    distance: 0.2,
-    occupied: false,
-    amenities: ['shower', 'changing_table'],
-    hours: 'Open 6 AM - 11 PM',
-  },
-  {
-    id: 2,
-    name: 'Chelsea - Unisex',
-    address: '456 8th Ave, New York, NY 10001',
-    distance: 0.5,
-    occupied: true,
-    amenities: ['accessible', 'shower'],
-    hours: 'Open 24/7',
-  },
-  {
-    id: 3,
-    name: 'West Village - Women\'s',
-    address: '789 Bleecker St, New York, NY 10014',
-    distance: 0.8,
-    occupied: false,
-    amenities: ['changing_table', 'accessible'],
-    hours: 'Open 7 AM - 10 PM',
-  },
-  {
-    id: 4,
-    name: 'East Village - Men\'s',
-    address: '321 Avenue A, New York, NY 10009',
-    distance: 1.2,
-    occupied: false,
-    amenities: ['shower'],
-    hours: 'Open 6 AM - Midnight',
-  },
-];
-
-const AMENITY_ICONS = {
-  shower: '🚿',
-  changing_table: '👶',
-  accessible: '♿',
-};
+interface Location {
+  id: string;
+  name: string;
+  address: string;
+  city: string | null;
+  state: string | null;
+  available_suites: number;
+  total_suites: number;
+  hours: string | null;
+  image_url: string | null;
+}
 
 export default function LocationsScreen() {
-  const [locations] = useState(MOCK_LOCATIONS);
+  const router = useRouter();
+  const haptics = useHaptics();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  useEffect(() => {
+    fetchLocations();
+  }, []);
+
+  const fetchLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching locations:', error.message);
+        return;
+      }
+
+      setLocations(data || []);
+    } catch (error) {
+      console.error('Failed to fetch locations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    haptics.light();
+    await fetchLocations();
+    setRefreshing(false);
+  };
+
+  const handleLocationPress = (location: Location) => {
+    haptics.light();
+    router.push(`/location/${location.id}`);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.navy} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView 
-        style={styles.scroll} 
-        contentContainerStyle={styles.content}
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Locations</Text>
+        <Text style={styles.subtitle}>Find your sanctuary</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.navy}
+          />
+        }
       >
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Find a Location</Text>
-          <Text style={styles.subtitle}>Nearby Maslow restrooms</Text>
-        </View>
+        {locations.length === 0 ? (
+          <MaslowCard style={styles.emptyCard} padding="xl">
+            <Ionicons name="location-outline" size={48} color={colors.darkGray} />
+            <Text style={styles.emptyTitle}>No Locations Available</Text>
+            <Text style={styles.emptySubtitle}>
+              Check back soon! We're opening new locations.
+            </Text>
+          </MaslowCard>
+        ) : (
+          locations.map((location) => {
+            const isAvailable = location.available_suites > 0;
 
-        {/* Map Placeholder */}
-        <View style={styles.mapPlaceholder}>
-          <Text style={styles.mapIcon}>🗺️</Text>
-          <Text style={styles.mapText}>Map view coming soon</Text>
-          <Text style={styles.mapSubtext}>Will show interactive map with pins</Text>
-        </View>
-
-        {/* Locations List */}
-        <Text style={styles.sectionTitle}>Nearby Locations</Text>
-
-        {locations.map((location) => (
-          <View key={location.id} style={styles.locationCard}>
-            <View style={styles.locationHeader}>
-              <View style={styles.locationInfo}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.locationName}>{location.name}</Text>
-                  {location.occupied ? (
-                    <View style={styles.statusBadge}>
-                      <View style={styles.statusDot} />
-                      <Text style={styles.statusText}>Occupied</Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.statusBadge, styles.statusBadgeAvailable]}>
-                      <View style={[styles.statusDot, styles.statusDotAvailable]} />
-                      <Text style={[styles.statusText, styles.statusTextAvailable]}>Available</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.locationAddress}>{location.address}</Text>
-                <Text style={styles.locationHours}>⏰ {location.hours}</Text>
-              </View>
-            </View>
-
-            <View style={styles.distanceRow}>
-              <Text style={styles.distance}>📍 {location.distance} mi away</Text>
-            </View>
-
-            {/* Amenities */}
-            {location.amenities.length > 0 && (
-              <View style={styles.amenities}>
-                {location.amenities.map((amenity, index) => (
-                  <View key={index} style={styles.amenityTag}>
-                    <Text style={styles.amenityIcon}>{AMENITY_ICONS[amenity]}</Text>
-                    <Text style={styles.amenityText}>
-                      {amenity.replace('_', ' ')}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.actions}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.navigateButton]}
-                onPress={() => {/* Navigate */}}
+            return (
+              <TouchableOpacity
+                key={location.id}
+                onPress={() => handleLocationPress(location)}
+                activeOpacity={0.8}
               >
-                <Text style={styles.actionButtonText}>🧭 Navigate</Text>
+                <MaslowCard style={styles.locationCard} padding="md">
+                  <View style={styles.locationHeader}>
+                    <View style={styles.locationInfo}>
+                      <Text style={styles.locationName}>{location.name}</Text>
+                      <View style={styles.addressRow}>
+                        <Ionicons name="location-outline" size={14} color={colors.darkGray} />
+                        <Text style={styles.locationAddress} numberOfLines={1}>
+                          {location.address}
+                          {location.city && `, ${location.city}`}
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.darkGray} />
+                  </View>
+
+                  <View style={styles.locationFooter}>
+                    <View style={styles.availabilityBadge}>
+                      <View style={[
+                        styles.availabilityDot,
+                        { backgroundColor: isAvailable ? colors.success : colors.error }
+                      ]} />
+                      <Text style={[
+                        styles.availabilityText,
+                        { color: isAvailable ? colors.success : colors.error }
+                      ]}>
+                        {isAvailable
+                          ? `${location.available_suites} suite${location.available_suites > 1 ? 's' : ''} available`
+                          : 'Fully booked'}
+                      </Text>
+                    </View>
+
+                    {location.hours && (
+                      <View style={styles.hoursRow}>
+                        <Ionicons name="time-outline" size={12} color={colors.darkGray} />
+                        <Text style={styles.hoursText}>{location.hours}</Text>
+                      </View>
+                    )}
+                  </View>
+                </MaslowCard>
               </TouchableOpacity>
-              
-              {!location.occupied && (
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.qrButton]}
-                  onPress={() => {/* Show QR */}}
-                >
-                  <Text style={[styles.actionButtonText, styles.qrButtonText]}>
-                    Show Pass
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            );
+          })
+        )}
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => {
+                haptics.medium();
+                router.push('/quick-visit');
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="flash" size={24} color={colors.gold} />
+              </View>
+              <Text style={styles.quickActionTitle}>Quick Visit</Text>
+              <Text style={styles.quickActionSubtitle}>Walk in, 10 min</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => {
+                haptics.medium();
+                router.push('/buy-credits');
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="card" size={24} color={colors.gold} />
+              </View>
+              <Text style={styles.quickActionTitle}>Buy Credits</Text>
+              <Text style={styles.quickActionSubtitle}>Save with bundles</Text>
+            </TouchableOpacity>
           </View>
-        ))}
-
-        {/* Bottom padding */}
-        <View style={{ height: 40 }} />
-
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -156,179 +205,150 @@ export default function LocationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: colors.cream,
   },
-  scroll: {
+  loadingContainer: {
     flex: 1,
-  },
-  content: {
-    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
-    marginBottom: 20,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
-    color: BLUE,
-    marginBottom: 4,
+    color: colors.navy,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  mapPlaceholder: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 48,
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-  },
-  mapIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  mapText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: DARK,
-    marginBottom: 4,
-  },
-  mapSubtext: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.darkGray,
+    marginTop: 2,
   },
-  sectionTitle: {
+  scrollContent: {
+    padding: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: 100,
+  },
+  emptyCard: {
+    alignItems: 'center',
+  },
+  emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: DARK,
-    marginBottom: 16,
+    fontWeight: '600',
+    color: colors.navy,
+    marginTop: spacing.md,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.darkGray,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   locationCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: spacing.md,
   },
   locationHeader: {
-    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   locationInfo: {
-    gap: 6,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  locationName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: DARK,
     flex: 1,
   },
-  statusBadge: {
+  locationName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.navy,
+    marginBottom: 4,
+  },
+  addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    gap: 6,
+    gap: 4,
   },
-  statusBadgeAvailable: {
-    backgroundColor: '#D1FAE5',
+  locationAddress: {
+    fontSize: 13,
+    color: colors.darkGray,
+    flex: 1,
   },
-  statusDot: {
+  locationFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+  },
+  availabilityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  availabilityDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
   },
-  statusDotAvailable: {
-    backgroundColor: '#10B981',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
-  statusTextAvailable: {
-    color: '#059669',
-  },
-  locationAddress: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  locationHours: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  distanceRow: {
-    marginBottom: 12,
-  },
-  distance: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: BLUE,
-  },
-  amenities: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  amenityTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  amenityIcon: {
-    fontSize: 16,
-  },
-  amenityText: {
+  availabilityText: {
     fontSize: 13,
     fontWeight: '600',
-    color: DARK,
-    textTransform: 'capitalize',
   },
-  actions: {
+  hoursRow: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
     alignItems: 'center',
+    gap: 4,
   },
-  navigateButton: {
-    backgroundColor: BLUE,
+  hoursText: {
+    fontSize: 12,
+    color: colors.darkGray,
   },
-  qrButton: {
-    backgroundColor: 'white',
-    borderWidth: 2,
-    borderColor: BLUE,
+  quickActionsSection: {
+    marginTop: spacing.lg,
   },
-  actionButtonText: {
+  sectionTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    fontSize: 15,
-    color: 'white',
+    color: colors.darkGray,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.md,
   },
-  qrButtonText: {
-    color: BLUE,
+  quickActionsGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: spacing.md,
+    alignItems: 'center',
+    shadowColor: colors.navy,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${colors.gold}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickActionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.navy,
+    marginBottom: 2,
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    color: colors.darkGray,
   },
 });
