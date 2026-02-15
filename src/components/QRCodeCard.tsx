@@ -6,7 +6,7 @@ import { colors, spacing, shadows } from '../theme';
 interface QRCodeCardProps {
   userName: string;
   memberSince?: string;
-  memberTier: 'guest' | 'founding' | 'architect' | 'sovereign';
+  memberTier: 'member' | 'founding' | 'architect' | 'sovereign';
   qrValue: string;
   credits?: number;
   visits?: number;
@@ -14,7 +14,7 @@ interface QRCodeCardProps {
 }
 
 const tierLabels: Record<string, string> = {
-  guest: 'GUEST',
+  member: 'MEMBER',
   founding: 'FOUNDING MEMBER',
   architect: 'ARCHITECT',
   sovereign: 'SOVEREIGN',
