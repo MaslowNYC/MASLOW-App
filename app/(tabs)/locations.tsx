@@ -15,6 +15,8 @@ import { supabase } from '../../lib/supabase';
 import { colors, spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
+import i18n from '../../src/i18n';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 interface Location {
   id: string;
@@ -31,6 +33,7 @@ interface Location {
 export default function LocationsScreen() {
   const router = useRouter();
   const haptics = useHaptics();
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -85,8 +88,8 @@ export default function LocationsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Locations</Text>
-        <Text style={styles.subtitle}>Find your sanctuary</Text>
+        <Text style={styles.title}>{i18n.t('locations')}</Text>
+        <Text style={styles.subtitle}>{i18n.t('findYourSanctuary')}</Text>
       </View>
 
       <ScrollView
@@ -103,9 +106,9 @@ export default function LocationsScreen() {
         {locations.length === 0 ? (
           <MaslowCard style={styles.emptyCard} padding="xl">
             <Ionicons name="location-outline" size={48} color={colors.darkGray} />
-            <Text style={styles.emptyTitle}>No Locations Available</Text>
+            <Text style={styles.emptyTitle}>{i18n.t('noLocationsAvailable')}</Text>
             <Text style={styles.emptySubtitle}>
-              Check back soon! We're opening new locations.
+              {i18n.t('noLocationsSubtitle')}
             </Text>
           </MaslowCard>
         ) : (
@@ -144,8 +147,8 @@ export default function LocationsScreen() {
                         { color: isAvailable ? colors.success : colors.error }
                       ]}>
                         {isAvailable
-                          ? `${location.available_suites} suite${location.available_suites > 1 ? 's' : ''} available`
-                          : 'Fully booked'}
+                          ? `${location.available_suites} ${location.available_suites > 1 ? i18n.t('suitesAvailable') : i18n.t('suiteAvailable')}`
+                          : i18n.t('fullyBooked')}
                       </Text>
                     </View>
 
@@ -164,7 +167,7 @@ export default function LocationsScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>{i18n.t('quickActions')}</Text>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
               style={styles.quickActionCard}
@@ -177,8 +180,8 @@ export default function LocationsScreen() {
               <View style={styles.quickActionIcon}>
                 <Ionicons name="flash" size={24} color={colors.gold} />
               </View>
-              <Text style={styles.quickActionTitle}>Quick Visit</Text>
-              <Text style={styles.quickActionSubtitle}>Walk in, 10 min</Text>
+              <Text style={styles.quickActionTitle}>{i18n.t('quickVisit')}</Text>
+              <Text style={styles.quickActionSubtitle}>{i18n.t('walkIn10Min')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -192,8 +195,8 @@ export default function LocationsScreen() {
               <View style={styles.quickActionIcon}>
                 <Ionicons name="card" size={24} color={colors.gold} />
               </View>
-              <Text style={styles.quickActionTitle}>Buy Credits</Text>
-              <Text style={styles.quickActionSubtitle}>Save with bundles</Text>
+              <Text style={styles.quickActionTitle}>{i18n.t('buyCredits')}</Text>
+              <Text style={styles.quickActionSubtitle}>{i18n.t('saveWithBundles')}</Text>
             </TouchableOpacity>
           </View>
         </View>

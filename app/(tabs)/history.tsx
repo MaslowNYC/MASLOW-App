@@ -1,6 +1,8 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import i18n from '../../src/i18n';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 const BLUE = '#2C5F8D';
 const CREAM = '#F9F2EC';
@@ -66,6 +68,7 @@ const MOCK_HISTORY: Visit[] = [
 ];
 
 export default function HistoryScreen() {
+  const { language } = useLanguage();
   const [history, setHistory] = useState<Visit[]>(MOCK_HISTORY);
 
   // Calculate stats
@@ -89,10 +92,10 @@ export default function HistoryScreen() {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
+    if (hours < 1) return i18n.t('justNow');
+    if (hours < 24) return `${hours} ${hours > 1 ? i18n.t('hoursAgo') : i18n.t('hourAgo')}`;
+    if (days === 1) return i18n.t('yesterday');
+    if (days < 7) return `${days} ${days > 1 ? i18n.t('daysAgo') : i18n.t('dayAgo')}`;
     return date.toLocaleDateString();
   };
 
@@ -106,30 +109,30 @@ export default function HistoryScreen() {
         
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Usage History</Text>
-          <Text style={styles.subtitle}>Your recent activity</Text>
+          <Text style={styles.title}>{i18n.t('usageHistory')}</Text>
+          <Text style={styles.subtitle}>{i18n.t('recentActivity')}</Text>
         </View>
 
         {/* Monthly Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>📊 This Month</Text>
+          <Text style={styles.summaryTitle}>📊 {i18n.t('thisMonth')}</Text>
           <View style={styles.statsGrid}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{thisMonthVisits}</Text>
-              <Text style={styles.statLabel}>Visits</Text>
+              <Text style={styles.statLabel}>{i18n.t('visits')}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{uniqueLocations}</Text>
-              <Text style={styles.statLabel}>Locations</Text>
+              <Text style={styles.statLabel}>{i18n.t('locations')}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{avgDuration}</Text>
-              <Text style={styles.statLabel}>Avg Minutes</Text>
+              <Text style={styles.statLabel}>{i18n.t('avgMinutes')}</Text>
             </View>
           </View>
           {topLocation && (
             <View style={styles.topLocation}>
-              <Text style={styles.topLocationLabel}>Most visited:</Text>
+              <Text style={styles.topLocationLabel}>{i18n.t('mostVisited')}</Text>
               <Text style={styles.topLocationName}>
                 {topLocation[0]} ({topLocation[1]}x)
               </Text>
@@ -138,7 +141,7 @@ export default function HistoryScreen() {
         </View>
 
         {/* Recent Activity */}
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <Text style={styles.sectionTitle}>{i18n.t('recentActivityTitle')}</Text>
         
         {history.map((visit) => (
           <View key={visit.id} style={styles.visitCard}>
@@ -151,7 +154,7 @@ export default function HistoryScreen() {
                 </View>
               </View>
               <View style={styles.durationBadge}>
-                <Text style={styles.durationText}>{visit.duration_minutes} min</Text>
+                <Text style={styles.durationText}>{visit.duration_minutes} {i18n.t('min')}</Text>
               </View>
             </View>
             
@@ -171,7 +174,7 @@ export default function HistoryScreen() {
 
         {/* View All Button */}
         <TouchableOpacity style={styles.viewAllButton}>
-          <Text style={styles.viewAllText}>View All History</Text>
+          <Text style={styles.viewAllText}>{i18n.t('viewAllHistory')}</Text>
         </TouchableOpacity>
 
         {/* Bottom padding */}

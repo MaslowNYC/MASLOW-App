@@ -18,6 +18,8 @@ import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
 import { addEventToCalendar, formatEventForCalendar } from '../../src/utils/calendar';
+import i18n from '../../src/i18n';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 // Category type and colors
 type EventCategory = 'cultural' | 'childrens' | 'dancing' | 'learning' | 'wellness' | 'social' | 'nightlife';
@@ -102,6 +104,7 @@ const formatEventDate = (dateString: string): { date: string; time: string } => 
 
 export default function EventsScreen() {
   const haptics = useHaptics();
+  const { language } = useLanguage();
   const { filter } = useLocalSearchParams<{ filter?: string }>();
   const [events, setEvents] = useState<Event[]>([]);
   const [userRSVPs, setUserRSVPs] = useState<Set<string>>(new Set());
@@ -201,7 +204,7 @@ export default function EventsScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert('Sign in required', 'Please sign in to RSVP for events');
+        Alert.alert(i18n.t('signInRequired'), i18n.t('signInToRsvp'));
         setRsvpLoading(null);
         return;
       }
@@ -237,7 +240,7 @@ export default function EventsScreen() {
       } else {
         // Check if event is full
         if (event.max_attendees && event.current_attendees >= event.max_attendees) {
-          Alert.alert('Event Full', 'This event is at capacity.');
+          Alert.alert(i18n.t('eventFull'), i18n.t('eventFull'));
           setRsvpLoading(null);
           return;
         }
@@ -253,7 +256,7 @@ export default function EventsScreen() {
 
         if (error) {
           if (error.code === '23505') {
-            Alert.alert('Already registered', 'You are already registered for this event');
+            Alert.alert(i18n.t('alreadyRegistered'), i18n.t('alreadyRegisteredDesc'));
             setRsvpLoading(null);
             return;
           }
@@ -272,11 +275,11 @@ export default function EventsScreen() {
         );
 
         haptics.success();
-        Alert.alert('Success!', "You're registered for this event");
+        Alert.alert(i18n.t('success'), i18n.t('rsvpSuccess'));
       }
     } catch (error) {
       console.error('Error handling RSVP:', error);
-      Alert.alert('Error', 'Failed to update RSVP. Please try again.');
+      Alert.alert(i18n.t('error'), i18n.t('rsvpError'));
     } finally {
       setRsvpLoading(null);
     }
@@ -301,7 +304,7 @@ export default function EventsScreen() {
     const success = await addEventToCalendar(calendarConfig);
     if (success) {
       haptics.success();
-      Alert.alert('Success', 'Event added to your calendar!');
+      Alert.alert(i18n.t('success'), i18n.t('calendarSuccess'));
     }
   };
 
@@ -333,11 +336,11 @@ export default function EventsScreen() {
             </View>
             {isFull && !isRSVPd ? (
               <View style={styles.fullBadge}>
-                <Text style={styles.fullText}>Full</Text>
+                <Text style={styles.fullText}>{i18n.t('full')}</Text>
               </View>
             ) : spotsLeft !== null && spotsLeft <= 5 && spotsLeft > 0 ? (
               <Text style={styles.spotsWarning}>
-                {spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left
+                {spotsLeft} {spotsLeft === 1 ? i18n.t('spotLeft') : i18n.t('spotsLeft')}
               </Text>
             ) : null}
           </View>
@@ -360,7 +363,7 @@ export default function EventsScreen() {
             {event.host_name && (
               <View style={styles.eventDetailRow}>
                 <Ionicons name="person-outline" size={16} color={colors.darkGray} />
-                <Text style={styles.eventDetailText}>Hosted by {event.host_name}</Text>
+                <Text style={styles.eventDetailText}>{i18n.t('hostedBy')} {event.host_name}</Text>
               </View>
             )}
           </View>
@@ -372,11 +375,11 @@ export default function EventsScreen() {
                 <Ionicons name="people" size={16} color={colors.darkGray} />
                 <Text style={styles.attendeesText}>
                   {event.current_attendees}
-                  {event.max_attendees ? `/${event.max_attendees}` : ''} attending
+                  {event.max_attendees ? `/${event.max_attendees}` : ''} {i18n.t('attending')}
                 </Text>
               </View>
               <Text style={styles.priceText}>
-                {event.price_credits === 0 ? 'Free' : `${event.price_credits} credits`}
+                {event.price_credits === 0 ? i18n.t('free') : `${event.price_credits} ${i18n.t('credits')}`}
               </Text>
             </View>
 
@@ -405,7 +408,7 @@ export default function EventsScreen() {
                     styles.rsvpButtonText,
                     isRSVPd && styles.rsvpButtonTextActive,
                   ]}>
-                    {isRSVPd ? 'Going ✓' : 'RSVP'}
+                    {isRSVPd ? `${i18n.t('going')} ✓` : i18n.t('rsvp')}
                   </Text>
                 </>
               )}
@@ -459,7 +462,7 @@ export default function EventsScreen() {
               <View style={styles.modalDetailRow}>
                 <Ionicons name="calendar" size={20} color={colors.gold} />
                 <View>
-                  <Text style={styles.modalDetailLabel}>Date & Time</Text>
+                  <Text style={styles.modalDetailLabel}>{i18n.t('dateAndTime')}</Text>
                   <Text style={styles.modalDetailValue}>{date} at {time}</Text>
                 </View>
               </View>
@@ -468,7 +471,7 @@ export default function EventsScreen() {
                 <View style={styles.modalDetailRow}>
                   <Ionicons name="location" size={20} color={colors.gold} />
                   <View>
-                    <Text style={styles.modalDetailLabel}>Location</Text>
+                    <Text style={styles.modalDetailLabel}>{i18n.t('location')}</Text>
                     <Text style={styles.modalDetailValue}>{selectedEvent.location}</Text>
                   </View>
                 </View>
@@ -478,7 +481,7 @@ export default function EventsScreen() {
                 <View style={styles.modalDetailRow}>
                   <Ionicons name="person" size={20} color={colors.gold} />
                   <View>
-                    <Text style={styles.modalDetailLabel}>Hosted by</Text>
+                    <Text style={styles.modalDetailLabel}>{i18n.t('hostedBy')}</Text>
                     <Text style={styles.modalDetailValue}>{selectedEvent.host_name}</Text>
                   </View>
                 </View>
@@ -487,10 +490,10 @@ export default function EventsScreen() {
               <View style={styles.modalDetailRow}>
                 <Ionicons name="people" size={20} color={colors.gold} />
                 <View>
-                  <Text style={styles.modalDetailLabel}>Attendees</Text>
+                  <Text style={styles.modalDetailLabel}>{i18n.t('attendees')}</Text>
                   <Text style={styles.modalDetailValue}>
                     {selectedEvent.current_attendees}
-                    {selectedEvent.max_attendees ? ` of ${selectedEvent.max_attendees}` : ''} registered
+                    {selectedEvent.max_attendees ? ` / ${selectedEvent.max_attendees}` : ''} {i18n.t('registered')}
                   </Text>
                 </View>
               </View>
@@ -498,9 +501,9 @@ export default function EventsScreen() {
               <View style={styles.modalDetailRow}>
                 <Ionicons name="ticket" size={20} color={colors.gold} />
                 <View>
-                  <Text style={styles.modalDetailLabel}>Price</Text>
+                  <Text style={styles.modalDetailLabel}>{i18n.t('price')}</Text>
                   <Text style={styles.modalDetailValue}>
-                    {selectedEvent.price_credits === 0 ? 'Free' : `${selectedEvent.price_credits} credits`}
+                    {selectedEvent.price_credits === 0 ? i18n.t('free') : `${selectedEvent.price_credits} ${i18n.t('credits')}`}
                   </Text>
                 </View>
               </View>
@@ -508,14 +511,14 @@ export default function EventsScreen() {
 
             {selectedEvent.description && (
               <View style={styles.descriptionSection}>
-                <Text style={styles.descriptionTitle}>About This Event</Text>
+                <Text style={styles.descriptionTitle}>{i18n.t('aboutThisEvent')}</Text>
                 <Text style={styles.descriptionText}>{selectedEvent.description}</Text>
               </View>
             )}
 
             {selectedEvent.tags && selectedEvent.tags.length > 0 && (
               <View style={styles.tagsSection}>
-                <Text style={styles.tagsTitle}>Tags</Text>
+                <Text style={styles.tagsTitle}>{i18n.t('tags')}</Text>
                 <View style={styles.tagsContainer}>
                   {selectedEvent.tags.map((tag, index) => (
                     <View key={index} style={styles.tag}>
@@ -535,7 +538,7 @@ export default function EventsScreen() {
                   onPress={() => handleAddToCalendar(selectedEvent)}
                 >
                   <Ionicons name="calendar-outline" size={20} color={colors.navy} />
-                  <Text style={styles.calendarButtonText}>Add to Calendar</Text>
+                  <Text style={styles.calendarButtonText}>{i18n.t('addToCalendar')}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -552,7 +555,7 @@ export default function EventsScreen() {
                   <ActivityIndicator size="small" color={colors.cream} />
                 ) : (
                   <Text style={styles.modalRsvpButtonText}>
-                    {isRSVPd ? 'Cancel RSVP' : isFull ? 'Event Full' : 'RSVP Now'}
+                    {isRSVPd ? i18n.t('cancelRsvp') : isFull ? i18n.t('eventFull') : i18n.t('rsvpNow')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -567,8 +570,8 @@ export default function EventsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Events</Text>
-        <Text style={styles.subtitle}>Discover experiences in The Hull</Text>
+        <Text style={styles.title}>{i18n.t('events')}</Text>
+        <Text style={styles.subtitle}>{i18n.t('discoverExperiences')}</Text>
       </View>
 
       {/* Category Filter Chips */}
@@ -607,7 +610,7 @@ export default function EventsScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.gold} />
-          <Text style={styles.loadingText}>Loading events...</Text>
+          <Text style={styles.loadingText}>{i18n.t('loadingEvents')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -632,21 +635,21 @@ export default function EventsScreen() {
                 <MaslowCard style={styles.emptyCard} padding="xl">
                   <Ionicons name="calendar-outline" size={48} color={colors.darkGray} />
                   <Text style={styles.emptyTitle}>
-                    {selectedCategory === 'my-events' ? 'No RSVPs Yet' : 'No Events Found'}
+                    {selectedCategory === 'my-events' ? i18n.t('noRsvpsYet') : i18n.t('noEventsFound')}
                   </Text>
                   <Text style={styles.emptySubtitle}>
                     {selectedCategory === 'all'
-                      ? 'No upcoming events scheduled'
+                      ? i18n.t('noUpcomingEvents')
                       : selectedCategory === 'my-events'
-                      ? "You haven't RSVP'd to any events yet"
-                      : `No ${getCategoryLabel(selectedCategory as EventCategory)} events scheduled`}
+                      ? i18n.t('noRsvpsDesc')
+                      : i18n.t('noEventsInCategory')}
                   </Text>
                   {selectedCategory !== 'all' && (
                     <TouchableOpacity
                       style={styles.clearFilterButton}
                       onPress={() => setSelectedCategory('all')}
                     >
-                      <Text style={styles.clearFilterText}>Show All Events</Text>
+                      <Text style={styles.clearFilterText}>{i18n.t('showAllEvents')}</Text>
                     </TouchableOpacity>
                   )}
                 </MaslowCard>
@@ -656,8 +659,8 @@ export default function EventsScreen() {
             return (
               <>
                 <Text style={styles.resultsCount}>
-                  {displayEvents.length} {displayEvents.length === 1 ? 'event' : 'events'}
-                  {selectedCategory === 'my-events' ? " you're attending" : ' found'}
+                  {displayEvents.length} {displayEvents.length === 1 ? i18n.t('eventCount') : i18n.t('eventsCount')}
+                  {selectedCategory === 'my-events' ? ` ${i18n.t('youreAttending')}` : ` ${i18n.t('found')}`}
                 </Text>
                 {displayEvents.map(renderEventCard)}
               </>

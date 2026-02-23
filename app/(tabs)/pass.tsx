@@ -16,16 +16,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../src/hooks/useHaptics';
+import i18n from '../../src/i18n';
+import { useLanguage } from '../../src/context/LanguageContext';
 //import { syncToWatch } from '../../src/utils/watchSync';
 
 // Helper to format membership tier display
 const formatTierDisplay = (tier: string | null): string => {
-  if (!tier) return 'Member';
+  if (!tier) return i18n.t('member');
   const tierLower = tier.toLowerCase();
   if (tierLower === 'founding') return 'Founding Member';
   if (tierLower === 'architect') return 'Architect';
   if (tierLower === 'sovereign') return 'Sovereign';
-  return 'Member';
+  return i18n.t('member');
 };
 
 interface MemberData {
@@ -40,6 +42,7 @@ interface MemberData {
 
 export default function PassScreen() {
   const haptics = useHaptics();
+  const { language } = useLanguage();
   const [memberData, setMemberData] = useState<MemberData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
@@ -65,7 +68,7 @@ export default function PassScreen() {
       const lastName = profile?.last_name || '';
       const name = firstName && lastName
         ? `${firstName} ${lastName}`
-        : firstName || user.email?.split('@')[0] || 'Member';
+        : firstName || user.email?.split('@')[0] || i18n.t('member');
 
       // Format tier
       const tier = formatTierDisplay(profile?.membership_tier);
@@ -114,11 +117,11 @@ export default function PassScreen() {
   const handleAddToWallet = () => {
     haptics.medium();
     Alert.alert(
-      'Coming Soon',
+      i18n.t('comingSoon'),
       Platform.OS === 'ios'
-        ? 'Apple Wallet integration will be available soon.'
-        : 'Google Wallet integration will be available soon.',
-      [{ text: 'OK' }]
+        ? i18n.t('walletComingSoonIOS')
+        : i18n.t('walletComingSoonAndroid'),
+      [{ text: i18n.t('ok') }]
     );
   };
 
@@ -140,7 +143,7 @@ export default function PassScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Member Pass</Text>
+          <Text style={styles.title}>{i18n.t('memberPass')}</Text>
         </View>
 
         {/* QR Code */}
@@ -158,7 +161,7 @@ export default function PassScreen() {
         <View style={styles.instructionsSection}>
           <Ionicons name="scan-outline" size={18} color={colors.darkGray} />
           <Text style={styles.instructionsText}>
-            Scan at any Maslow suite door
+            {i18n.t('scanInstructions')}
           </Text>
         </View>
 
@@ -166,7 +169,7 @@ export default function PassScreen() {
         <View style={styles.infoRow}>
           {/* Name & Tier */}
           <View style={styles.infoCard}>
-            <Text style={styles.userName}>{memberData?.name || 'Member'}</Text>
+            <Text style={styles.userName}>{memberData?.name || i18n.t('member')}</Text>
             <View style={styles.tierRow}>
               <Ionicons name="ribbon" size={12} color={colors.gold} />
               <Text style={styles.tierText}>{memberData?.tier}</Text>
@@ -176,7 +179,7 @@ export default function PassScreen() {
           {/* Credits */}
           <View style={styles.creditsCard}>
             <Text style={styles.creditsValue}>{memberData?.credits || 0}</Text>
-            <Text style={styles.creditsLabel}>Credits</Text>
+            <Text style={styles.creditsLabel}>{i18n.t('credits')}</Text>
           </View>
         </View>
 
