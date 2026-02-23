@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import i18n from '../src/i18n';
 import {
   View,
   Text,
@@ -15,6 +16,9 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../src/theme';
 import { useHaptics } from '../src/hooks/useHaptics';
+import { LanguageBubble } from '../src/components';
+import { LanguageCode, setLanguage } from '../src/i18n';
+import { useLanguage } from '../src/context/LanguageContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -42,9 +46,16 @@ const SLIDE_INTERVAL = 8000;
 export default function UnauthenticatedHomeScreen() {
   const router = useRouter();
   const haptics = useHaptics();
+  const { language } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>('en');
+
+  const handleLanguageChange = (code: LanguageCode) => {
+    setCurrentLanguage(code);
+    setLanguage(code);
+  };
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const nextFadeAnim = useRef(new Animated.Value(0)).current;
@@ -129,7 +140,7 @@ export default function UnauthenticatedHomeScreen() {
         {/* Logo */}
         <SafeAreaView style={styles.logoContainer} edges={['top']}>
           <Text style={styles.logoText}>MASLOW</Text>
-          <Text style={styles.tagline}>Your Sanctuary Awaits</Text>
+          <Text style={styles.tagline}>{i18n.t('common.your_sanctuary_awaits')}</Text>
         </SafeAreaView>
 
         {/* Page indicators */}
@@ -168,6 +179,12 @@ export default function UnauthenticatedHomeScreen() {
           By continuing, you agree to our Terms of Service
         </Text>
       </SafeAreaView>
+
+      {/* Language Selection Bubble */}
+      <LanguageBubble
+        currentLanguage={currentLanguage}
+        onLanguageChange={handleLanguageChange}
+      />
     </View>
   );
 }

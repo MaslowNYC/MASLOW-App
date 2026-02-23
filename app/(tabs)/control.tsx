@@ -14,7 +14,7 @@ export default function ControlScreen() {
   // Lighting state
   const [brightness, setBrightness] = useState(75);
   const [temperature, setTemperature] = useState(3500);
-  const [lightingPreset, setLightingPreset] = useState(null);
+  const [lightingPreset, setLightingPreset] = useState<string | null>(null);
 
   // Audio state
   const [volume, setVolume] = useState(50);
@@ -68,7 +68,7 @@ export default function ControlScreen() {
   const sessionTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
   // Lighting presets with haptics
-  const applyLightingPreset = (preset) => {
+  const applyLightingPreset = (preset: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLightingPreset(preset);
     switch(preset) {
@@ -99,13 +99,13 @@ export default function ControlScreen() {
   };
 
   // Soundscape change with haptics
-  const changeSoundscape = (option) => {
+  const changeSoundscape = (option: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSoundscape(option);
   };
 
   // Fan speed with haptics
-  const changeFanSpeed = (speed) => {
+  const changeFanSpeed = (speed: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFanSpeed(speed);
   };

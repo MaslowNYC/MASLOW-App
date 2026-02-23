@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase, clearAuthState } from '../../lib/supabase';
@@ -179,31 +180,31 @@ export default function AccountScreen() {
     }
   };
 
-  // Fetch credits balance from Supabase
+  // Fetch credits balance from profiles.credits column (same source as Transfer screen)
   const fetchCredits = async () => {
+    console.log('PROFILE: fetchCredits() called');
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user) {
+        console.log('PROFILE: No user found');
         return;
       }
 
-      // Query credits table for active, non-expired credits
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from('credits')
-        .select('amount')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .or(`expires_at.is.null,expires_at.gt.${now}`);
+      // Read from profiles.credits column (current balance)
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
 
       if (error) {
         console.error('Error fetching credits:', error.message);
         return;
       }
 
-      // Sum up all credit amounts
-      const totalCredits = (data || []).reduce((sum, row) => sum + (row.amount || 0), 0);
+      const totalCredits = profileData?.credits || 0;
+      console.log('PROFILE: Credits fetched =', totalCredits);
       setCredits(totalCredits);
     } catch (error) {
       console.error('Failed to fetch credits:', error);
@@ -222,6 +223,15 @@ export default function AccountScreen() {
     fetchProfile();
     fetchCredits();
   }, []);
+
+  // Refresh data when screen comes into focus (e.g., after transferring credits)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('PROFILE: useFocusEffect triggered - refreshing data');
+      fetchProfile();
+      fetchCredits();
+    }, [])
+  );
 
   // Get display name
   const getDisplayName = (): string => {
@@ -264,7 +274,7 @@ export default function AccountScreen() {
           style: 'destructive',
           onPress: async () => {
             await supabase.auth.signOut();
-            router.replace('/(auth)/login');
+            // Navigation handled automatically by _layout.tsx auth listener
           },
         },
       ]
@@ -544,6 +554,18 @@ export default function AccountScreen() {
               icon="book-outline"
               label="My Bookings"
               onPress={() => router.push('/bookings')}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="calendar-outline"
+              label="My Events"
+              onPress={() => router.push('/(tabs)/events?filter=my-events')}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="gift-outline"
+              label="Transfer Credits"
+              onPress={() => router.push('/transfer-credits')}
             />
           </MaslowCard>
         </View>

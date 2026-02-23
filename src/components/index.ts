@@ -2,3 +2,8 @@ export { MaslowCard } from './MaslowCard';
 export { MaslowButton } from './MaslowButton';
 export { QRCodeCard } from './QRCodeCard';
 export { SessionTimer } from './SessionTimer';
+export { FloatingHomeButton } from './FloatingHomeButton';
+export { ConciergeBubble } from './ConciergeBubble';
+export { ConciergeChat } from './ConciergeChat';
+export { LanguageBubble } from './LanguageBubble';
+export { AccessibilityQuestionnaire } from './AccessibilityQuestionnaire';

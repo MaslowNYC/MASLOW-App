@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,15 +19,36 @@ import { useHaptics } from '../../src/hooks/useHaptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Placeholder colors for Maslow interior images (will be replaced with actual images)
+// Luxury powder room images - local assets
 const MASLOW_IMAGES = [
-  { color: '#E8E6E1', label: 'Suite 1' },
-  { color: '#D4C5B0', label: 'Vanity' },
-  { color: '#B8A990', label: 'Details' },
-  { color: '#C9B8A3', label: 'Lighting' },
-  { color: '#9D8F7D', label: 'Textures' },
-  { color: '#A89985', label: 'Zen' },
-  { color: '#8B7D6B', label: 'Ambiance' },
+  {
+    source: require('../../assets/images/Suite.jpg'),
+    caption: 'Minimalist Elegance',
+  },
+  {
+    source: require('../../assets/images/room.jpg'),
+    caption: 'Marble & Wood Vanity',
+  },
+  {
+    source: require('../../assets/images/vanity.jpg'),
+    caption: 'Herringbone Tile Design',
+  },
+  {
+    source: require('../../assets/images/another.jpg'),
+    caption: 'Vessel Sink & Marble',
+  },
+  {
+    source: require('../../assets/images/Sink.jpg'),
+    caption: 'Gold Fixtures & Marble',
+  },
+  {
+    source: require('../../assets/images/Maslow suite.webp'),
+    caption: 'Contemporary Powder Room',
+  },
+  {
+    source: require('../../assets/images/Toilet.webp'),
+    caption: 'Modern Luxury Suite',
+  },
 ];
 
 // Placeholder colors for NYC videos (will be replaced with actual videos)
@@ -38,8 +60,8 @@ const NYC_SCENES = [
   { color: '#16213e', label: 'Evening Glow' },
 ];
 
-const AUTHENTICATED_INTERVAL = 3000;
-const AUTHENTICATED_FADE_DURATION = 500;
+const AUTHENTICATED_INTERVAL = 4000; // 4 seconds per image
+const AUTHENTICATED_FADE_DURATION = 600;
 const UNAUTHENTICATED_INTERVAL = 8000;
 const UNAUTHENTICATED_FADE_DURATION = 1000;
 
@@ -60,6 +82,7 @@ export default function HomeScreen() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
+      setCurrentIndex(0); // Reset carousel index on auth change
       if (session) {
         fetchUserProfile(session.user.id);
       }
@@ -235,27 +258,31 @@ export default function HomeScreen() {
       {/* Image Carousel */}
       <View style={styles.carouselContainer}>
         {/* Current Image */}
-        <Animated.View
-          style={[
-            styles.imagePlaceholder,
-            { backgroundColor: MASLOW_IMAGES[currentIndex].color, opacity: fadeAnim },
-          ]}
-        >
-          <Ionicons name="image-outline" size={48} color="rgba(0,0,0,0.1)" />
-          <Text style={styles.imageLabel}>{MASLOW_IMAGES[currentIndex].label}</Text>
+        <Animated.View style={[styles.imageWrapper, { opacity: fadeAnim }]}>
+          <Image
+            source={MASLOW_IMAGES[currentIndex].source}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          <View style={styles.imageOverlay}>
+            <Text style={styles.overlayText}>New York's First Real Restroom</Text>
+            <Text style={styles.overlaySubtext}>{MASLOW_IMAGES[currentIndex].caption}</Text>
+          </View>
         </Animated.View>
 
         {/* Next Image */}
-        <Animated.View
-          style={[
-            styles.imagePlaceholder,
-            styles.nextImage,
-            { backgroundColor: MASLOW_IMAGES[nextIndex].color, opacity: nextFadeAnim },
-          ]}
-        >
-          <Ionicons name="image-outline" size={48} color="rgba(0,0,0,0.1)" />
-          <Text style={styles.imageLabel}>{MASLOW_IMAGES[nextIndex].label}</Text>
+        <Animated.View style={[styles.imageWrapper, styles.nextImage, { opacity: nextFadeAnim }]}>
+          <Image
+            source={MASLOW_IMAGES[nextIndex].source}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          <View style={styles.imageOverlay}>
+            <Text style={styles.overlayText}>New York's First Real Restroom</Text>
+            <Text style={styles.overlaySubtext}>{MASLOW_IMAGES[nextIndex].caption}</Text>
+          </View>
         </Animated.View>
+
       </View>
 
       {/* Compact Quick Actions */}
@@ -427,19 +454,38 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  imagePlaceholder: {
+  imageWrapper: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
   },
   nextImage: {
     zIndex: -1,
   },
-  imageLabel: {
-    fontSize: 12,
-    color: 'rgba(0,0,0,0.2)',
-    marginTop: spacing.sm,
-    fontWeight: '500',
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  overlayText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+  overlaySubtext: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 4,
   },
   quickActionsContainer: {
     flexDirection: 'row',

@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { colors, spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
+import { addEventToCalendar, formatEventForCalendar } from '../../src/utils/calendar';
 
 // Category type and colors
 type EventCategory = 'cultural' | 'childrens' | 'dancing' | 'learning' | 'wellness' | 'social' | 'nightlife';
@@ -24,7 +26,8 @@ interface Event {
   id: string;
   title: string;
   description: string | null;
-  event_date: string;
+  starts_at: string;
+  ends_at: string | null;
   location: string | null;
   category: EventCategory;
   tags: string[] | null;
@@ -36,15 +39,11 @@ interface Event {
   image_url: string | null;
 }
 
-interface EventAttendee {
-  id: string;
-  event_id: string;
-  user_id: string;
-  rsvp_status: 'confirmed' | 'waitlisted' | 'cancelled';
-}
+// RSVP status values: 'going', 'waitlisted', 'cancelled'
 
-const CATEGORIES: { key: EventCategory | 'all'; label: string; color: string }[] = [
+const CATEGORIES: { key: EventCategory | 'all' | 'my-events'; label: string; color: string }[] = [
   { key: 'all', label: 'All', color: colors.navy },
+  { key: 'my-events', label: 'My Events', color: '#10B981' },
   { key: 'cultural', label: 'Cultural', color: '#8B5CF6' },
   { key: 'childrens', label: "Children's", color: '#F59E0B' },
   { key: 'dancing', label: 'Dancing', color: '#EC4899' },
@@ -103,13 +102,23 @@ const formatEventDate = (dateString: string): { date: string; time: string } => 
 
 export default function EventsScreen() {
   const haptics = useHaptics();
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
   const [events, setEvents] = useState<Event[]>([]);
   const [userRSVPs, setUserRSVPs] = useState<Set<string>>(new Set());
-  const [selectedCategory, setSelectedCategory] = useState<EventCategory | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | 'all' | 'my-events'>(
+    filter === 'my-events' ? 'my-events' : 'all'
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+
+  // Handle URL filter parameter changes
+  useEffect(() => {
+    if (filter === 'my-events') {
+      setSelectedCategory('my-events');
+    }
+  }, [filter]);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -117,10 +126,11 @@ export default function EventsScreen() {
         .from('events')
         .select('*')
         .eq('status', 'upcoming')
-        .gte('event_date', new Date().toISOString())
-        .order('event_date', { ascending: true });
+        .gte('starts_at', new Date().toISOString())
+        .order('starts_at', { ascending: true });
 
-      if (selectedCategory !== 'all') {
+      // For 'my-events', we'll filter client-side after fetching
+      if (selectedCategory !== 'all' && selectedCategory !== 'my-events') {
         query = query.eq('category', selectedCategory);
       }
 
@@ -146,7 +156,7 @@ export default function EventsScreen() {
         .from('event_attendees')
         .select('event_id')
         .eq('user_id', user.id)
-        .eq('rsvp_status', 'confirmed');
+        .eq('rsvp_status', 'going');
 
       if (error) {
         console.error('Error fetching RSVPs:', error);
@@ -179,7 +189,7 @@ export default function EventsScreen() {
     fetchEvents();
   }, [selectedCategory, fetchEvents]);
 
-  const handleCategoryPress = (category: EventCategory | 'all') => {
+  const handleCategoryPress = (category: EventCategory | 'all' | 'my-events') => {
     haptics.light();
     setSelectedCategory(category);
   };
@@ -191,7 +201,7 @@ export default function EventsScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert('Sign In Required', 'Please sign in to RSVP to events.');
+        Alert.alert('Sign in required', 'Please sign in to RSVP for events');
         setRsvpLoading(null);
         return;
       }
@@ -222,10 +232,12 @@ export default function EventsScreen() {
               : e
           )
         );
+
+        haptics.success();
       } else {
         // Check if event is full
         if (event.max_attendees && event.current_attendees >= event.max_attendees) {
-          Alert.alert('Event Full', 'This event is at capacity. You can join the waitlist.');
+          Alert.alert('Event Full', 'This event is at capacity.');
           setRsvpLoading(null);
           return;
         }
@@ -236,10 +248,17 @@ export default function EventsScreen() {
           .insert({
             event_id: event.id,
             user_id: user.id,
-            rsvp_status: 'confirmed',
+            rsvp_status: 'going',
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            Alert.alert('Already registered', 'You are already registered for this event');
+            setRsvpLoading(null);
+            return;
+          }
+          throw error;
+        }
 
         setUserRSVPs(prev => new Set(prev).add(event.id));
 
@@ -251,13 +270,16 @@ export default function EventsScreen() {
               : e
           )
         );
+
+        haptics.success();
+        Alert.alert('Success!', "You're registered for this event");
       }
     } catch (error) {
       console.error('Error handling RSVP:', error);
       Alert.alert('Error', 'Failed to update RSVP. Please try again.');
+    } finally {
+      setRsvpLoading(null);
     }
-
-    setRsvpLoading(null);
   };
 
   const handleEventPress = (event: Event) => {
@@ -265,8 +287,26 @@ export default function EventsScreen() {
     setSelectedEvent(event);
   };
 
+  const handleAddToCalendar = async (event: Event) => {
+    haptics.medium();
+    const calendarConfig = formatEventForCalendar({
+      title: event.title,
+      starts_at: event.starts_at,
+      ends_at: event.ends_at,
+      location: event.location,
+      description: event.description,
+      host_name: event.host_name,
+    });
+
+    const success = await addEventToCalendar(calendarConfig);
+    if (success) {
+      haptics.success();
+      Alert.alert('Success', 'Event added to your calendar!');
+    }
+  };
+
   const renderEventCard = (event: Event) => {
-    const { date, time } = formatEventDate(event.event_date);
+    const { date, time } = formatEventDate(event.starts_at);
     const categoryColor = getCategoryColor(event.category);
     const isRSVPd = userRSVPs.has(event.id);
     const isFull = event.max_attendees !== null && event.current_attendees >= event.max_attendees;
@@ -353,19 +393,19 @@ export default function EventsScreen() {
               disabled={rsvpLoading === event.id}
             >
               {rsvpLoading === event.id ? (
-                <ActivityIndicator size="small" color={isRSVPd ? colors.white : colors.navy} />
+                <ActivityIndicator size="small" color={isRSVPd ? colors.cream : colors.navy} />
               ) : (
                 <>
                   <Ionicons
                     name={isRSVPd ? 'checkmark-circle' : 'add-circle-outline'}
                     size={18}
-                    color={isRSVPd ? colors.white : colors.navy}
+                    color={isRSVPd ? colors.cream : colors.navy}
                   />
                   <Text style={[
                     styles.rsvpButtonText,
                     isRSVPd && styles.rsvpButtonTextActive,
                   ]}>
-                    {isRSVPd ? 'Going' : 'RSVP'}
+                    {isRSVPd ? 'Going ✓' : 'RSVP'}
                   </Text>
                 </>
               )}
@@ -379,7 +419,7 @@ export default function EventsScreen() {
   const renderEventModal = () => {
     if (!selectedEvent) return null;
 
-    const { date, time } = formatEventDate(selectedEvent.event_date);
+    const { date, time } = formatEventDate(selectedEvent.starts_at);
     const categoryColor = getCategoryColor(selectedEvent.category);
     const isRSVPd = userRSVPs.has(selectedEvent.id);
     const isFull = selectedEvent.max_attendees !== null &&
@@ -488,23 +528,35 @@ export default function EventsScreen() {
           </ScrollView>
 
           <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={[
-                styles.modalRsvpButton,
-                isRSVPd && styles.modalRsvpButtonActive,
-                isFull && !isRSVPd && styles.modalRsvpButtonDisabled,
-              ]}
-              onPress={() => handleRSVP(selectedEvent)}
-              disabled={rsvpLoading === selectedEvent.id || (isFull && !isRSVPd)}
-            >
-              {rsvpLoading === selectedEvent.id ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.modalRsvpButtonText}>
-                  {isRSVPd ? 'Cancel RSVP' : isFull ? 'Event Full' : 'RSVP Now'}
-                </Text>
+            <View style={styles.modalButtonsRow}>
+              {isRSVPd && (
+                <TouchableOpacity
+                  style={styles.calendarButton}
+                  onPress={() => handleAddToCalendar(selectedEvent)}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={colors.navy} />
+                  <Text style={styles.calendarButtonText}>Add to Calendar</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalRsvpButton,
+                  isRSVPd && styles.modalRsvpButtonActive,
+                  isFull && !isRSVPd && styles.modalRsvpButtonDisabled,
+                  isRSVPd && styles.modalRsvpButtonSmaller,
+                ]}
+                onPress={() => handleRSVP(selectedEvent)}
+                disabled={rsvpLoading === selectedEvent.id || (isFull && !isRSVPd)}
+              >
+                {rsvpLoading === selectedEvent.id ? (
+                  <ActivityIndicator size="small" color={colors.cream} />
+                ) : (
+                  <Text style={styles.modalRsvpButtonText}>
+                    {isRSVPd ? 'Cancel RSVP' : isFull ? 'Event Full' : 'RSVP Now'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </SafeAreaView>
       </Modal>
@@ -569,32 +621,48 @@ export default function EventsScreen() {
             />
           }
         >
-          {events.length === 0 ? (
-            <MaslowCard style={styles.emptyCard} padding="xl">
-              <Ionicons name="calendar-outline" size={48} color={colors.darkGray} />
-              <Text style={styles.emptyTitle}>No Events Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {selectedCategory === 'all'
-                  ? 'No upcoming events scheduled'
-                  : `No ${getCategoryLabel(selectedCategory as EventCategory)} events scheduled`}
-              </Text>
-              {selectedCategory !== 'all' && (
-                <TouchableOpacity
-                  style={styles.clearFilterButton}
-                  onPress={() => setSelectedCategory('all')}
-                >
-                  <Text style={styles.clearFilterText}>Show All Events</Text>
-                </TouchableOpacity>
-              )}
-            </MaslowCard>
-          ) : (
-            <>
-              <Text style={styles.resultsCount}>
-                {events.length} {events.length === 1 ? 'event' : 'events'} found
-              </Text>
-              {events.map(renderEventCard)}
-            </>
-          )}
+          {(() => {
+            // Filter events for "My Events" tab
+            const displayEvents = selectedCategory === 'my-events'
+              ? events.filter(e => userRSVPs.has(e.id))
+              : events;
+
+            if (displayEvents.length === 0) {
+              return (
+                <MaslowCard style={styles.emptyCard} padding="xl">
+                  <Ionicons name="calendar-outline" size={48} color={colors.darkGray} />
+                  <Text style={styles.emptyTitle}>
+                    {selectedCategory === 'my-events' ? 'No RSVPs Yet' : 'No Events Found'}
+                  </Text>
+                  <Text style={styles.emptySubtitle}>
+                    {selectedCategory === 'all'
+                      ? 'No upcoming events scheduled'
+                      : selectedCategory === 'my-events'
+                      ? "You haven't RSVP'd to any events yet"
+                      : `No ${getCategoryLabel(selectedCategory as EventCategory)} events scheduled`}
+                  </Text>
+                  {selectedCategory !== 'all' && (
+                    <TouchableOpacity
+                      style={styles.clearFilterButton}
+                      onPress={() => setSelectedCategory('all')}
+                    >
+                      <Text style={styles.clearFilterText}>Show All Events</Text>
+                    </TouchableOpacity>
+                  )}
+                </MaslowCard>
+              );
+            }
+
+            return (
+              <>
+                <Text style={styles.resultsCount}>
+                  {displayEvents.length} {displayEvents.length === 1 ? 'event' : 'events'}
+                  {selectedCategory === 'my-events' ? " you're attending" : ' found'}
+                </Text>
+                {displayEvents.map(renderEventCard)}
+              </>
+            );
+          })()}
         </ScrollView>
       )}
 
@@ -782,16 +850,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.gold,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.navy,
+    backgroundColor: 'transparent',
   },
   rsvpButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
   },
   rsvpButtonDisabled: {
     backgroundColor: colors.lightGray,
+    borderColor: colors.lightGray,
   },
   rsvpButtonText: {
     fontSize: 14,
@@ -799,7 +871,7 @@ const styles = StyleSheet.create({
     color: colors.navy,
   },
   rsvpButtonTextActive: {
-    color: colors.white,
+    color: colors.cream,
   },
   // Modal styles
   modalContainer: {
@@ -915,11 +987,36 @@ const styles = StyleSheet.create({
     borderTopColor: colors.lightGray,
     backgroundColor: colors.white,
   },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  calendarButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.navy,
+    backgroundColor: 'transparent',
+  },
+  calendarButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.navy,
+  },
   modalRsvpButton: {
-    backgroundColor: colors.gold,
+    flex: 1,
+    backgroundColor: colors.navy,
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  modalRsvpButtonSmaller: {
+    flex: 1,
   },
   modalRsvpButtonActive: {
     backgroundColor: colors.error,
@@ -930,6 +1027,6 @@ const styles = StyleSheet.create({
   modalRsvpButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.cream,
   },
 });
