@@ -15,12 +15,13 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../src/hooks/useHaptics';
-import {
+import i18n, {
   SUPPORTED_LANGUAGES,
   LanguageCode,
   setLanguage,
   saveLanguagePreference,
 } from '../src/i18n';
+import { useLanguage } from '../src/context/LanguageContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -58,6 +59,7 @@ const ROTATION_INTERVAL = 2500;
 export default function WelcomeScreen() {
   const router = useRouter();
   const haptics = useHaptics();
+  const { language } = useLanguage();
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>('en');
   const [rotatingIndex, setRotatingIndex] = useState(0);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -171,14 +173,13 @@ export default function WelcomeScreen() {
             </View>
 
             {/* Tagline */}
-            <Text style={styles.tagline}>THE INFRASTRUCTURE OF</Text>
-            <Text style={styles.tagline}>DIGNITY</Text>
+            <Text style={styles.tagline}>{i18n.t('sanctuaryAwaits')}</Text>
 
             {/* Gold divider */}
             <View style={styles.divider} />
 
             {/* Waitlist Section */}
-            <Text style={styles.waitlistLabel}>WAITLIST POSITION</Text>
+            <Text style={styles.waitlistLabel}>{i18n.t('waitlistLabel')}</Text>
             <Text style={styles.waitlistNumber}>#263</Text>
           </Animated.View>
 
@@ -195,7 +196,7 @@ export default function WelcomeScreen() {
               onPress={handleGetInLine}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryButtonText}>GET IN LINE</Text>
+              <Text style={styles.primaryButtonText}>{i18n.t('getInLine')}</Text>
               <Ionicons name="arrow-forward" size={18} color={COLORS.accent} />
             </TouchableOpacity>
 
@@ -206,7 +207,7 @@ export default function WelcomeScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="lock-closed-outline" size={14} color={COLORS.grayLight} />
-              <Text style={styles.memberAccessText}>MEMBER ACCESS</Text>
+              <Text style={styles.memberAccessText}>{i18n.t('memberAccess')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -227,7 +228,7 @@ export default function WelcomeScreen() {
               </Text>
               <Text style={styles.languageName}>{rotatingLang.name.toUpperCase()}</Text>
             </Animated.View>
-            <Text style={styles.languageHint}>Tap to select language</Text>
+            <Text style={styles.languageHint}>{i18n.t('selectLanguage')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>
@@ -241,7 +242,7 @@ export default function WelcomeScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Language</Text>
+            <Text style={styles.modalTitle}>{i18n.t('selectLanguage')}</Text>
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowLanguageModal(false)}

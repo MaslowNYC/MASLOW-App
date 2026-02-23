@@ -43,12 +43,14 @@ const formatTierDisplay = (tier: string | null): string => {
   if (tierLower === 'architect') return 'Architect';
   if (tierLower === 'sovereign') return 'Sovereign';
   // Default to "Member" for any other value including "guest"
-  return 'Member';
+  return i18n.t('member');
 };
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
+import i18n from '../../src/i18n';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 // Profile data from Supabase
 interface UserProfile {
@@ -122,6 +124,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 export default function AccountScreen() {
   const router = useRouter();
   const haptics = useHaptics();
+  const { language } = useLanguage();
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<number>(0);
@@ -241,7 +244,7 @@ export default function AccountScreen() {
     if (profile.first_name) {
       return profile.first_name;
     }
-    return profile.email.split('@')[0] || 'Member';
+    return profile.email.split('@')[0] || i18n.t('member');
   };
 
   // Get initials for avatar
@@ -265,12 +268,12 @@ export default function AccountScreen() {
   const handleSignOut = () => {
     haptics.warning();
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      i18n.t('signOut'),
+      i18n.t('signOutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: i18n.t('cancel'), style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: i18n.t('signOut'),
           style: 'destructive',
           onPress: async () => {
             await supabase.auth.signOut();
@@ -453,12 +456,12 @@ export default function AccountScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Account</Text>
+          <Text style={styles.title}>{i18n.t('account')}</Text>
           <TouchableOpacity
             onPress={() => handleNavigate('edit-profile')}
             style={styles.editButton}
           >
-            <Text style={styles.editButtonText}>Edit</Text>
+            <Text style={styles.editButtonText}>{i18n.t('done')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -502,7 +505,7 @@ export default function AccountScreen() {
               {profile.member_number && (
                 <Text style={styles.memberNumber}>Member #{profile.member_number}</Text>
               )}
-              <Text style={styles.memberSince}>Member since {getMemberSince()}</Text>
+              <Text style={styles.memberSince}>{i18n.t('memberSince')} {getMemberSince()}</Text>
             </>
           )}
         </MaslowCard>
@@ -514,10 +517,10 @@ export default function AccountScreen() {
               <Ionicons name="wallet-outline" size={24} color={colors.gold} />
             </View>
             <View style={styles.walletInfo}>
-              <Text style={styles.walletLabel}>Credit Balance</Text>
+              <Text style={styles.walletLabel}>{i18n.t('creditBalance')}</Text>
               <View style={styles.walletBalanceRow}>
                 <Text style={styles.walletBalance}>{credits}</Text>
-                <Text style={styles.walletCreditsLabel}>credits</Text>
+                <Text style={styles.walletCreditsLabel}>{i18n.t('credits')}</Text>
               </View>
             </View>
           </View>
@@ -530,17 +533,17 @@ export default function AccountScreen() {
             activeOpacity={0.8}
           >
             <Ionicons name="add-circle" size={20} color={colors.navy} />
-            <Text style={styles.buyCreditsButtonText}>Buy Credits</Text>
+            <Text style={styles.buyCreditsButtonText}>{i18n.t('buyCredits')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Membership Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Membership</Text>
+          <Text style={styles.sectionTitle}>{i18n.t('membership')}</Text>
           <MaslowCard padding="sm">
             <MenuItem
               icon="person-outline"
-              label="Edit Profile"
+              label={i18n.t('editProfile')}
               onPress={() => router.push('/edit-profile')}
             />
             <View style={styles.menuDivider} />
@@ -552,19 +555,19 @@ export default function AccountScreen() {
             <View style={styles.menuDivider} />
             <MenuItem
               icon="book-outline"
-              label="My Bookings"
+              label={i18n.t('myBookings')}
               onPress={() => router.push('/bookings')}
             />
             <View style={styles.menuDivider} />
             <MenuItem
               icon="calendar-outline"
-              label="My Events"
+              label={i18n.t('myEvents')}
               onPress={() => router.push('/(tabs)/events?filter=my-events')}
             />
             <View style={styles.menuDivider} />
             <MenuItem
               icon="gift-outline"
-              label="Transfer Credits"
+              label={i18n.t('transferCredits')}
               onPress={() => router.push('/transfer-credits')}
             />
           </MaslowCard>
@@ -575,7 +578,7 @@ export default function AccountScreen() {
           <MaslowCard padding="sm">
             <MenuItem
               icon="log-out-outline"
-              label="Sign Out"
+              label={i18n.t('signOut')}
               onPress={handleSignOut}
               showChevron={false}
               danger
@@ -624,7 +627,7 @@ export default function AccountScreen() {
           onPress={() => router.push('/settings')}
           style={styles.settingsLinkContainer}
         >
-          <Text style={styles.settingsLink}>⚙️ Settings</Text>
+          <Text style={styles.settingsLink}>⚙️ {i18n.t('settings')}</Text>
         </TouchableOpacity>
 
         {/* App Version */}
