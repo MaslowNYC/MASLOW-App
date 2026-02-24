@@ -189,6 +189,13 @@ const translations = {
     dayAgo: 'day ago',
     daysAgo: 'days ago',
     min: 'min',
+    // Password Reset
+    forgotPassword: 'Forgot Password?',
+    emailRequired: 'Email Required',
+    emailRequiredMessage: 'Please enter your email address to reset your password.',
+    checkYourEmail: 'Check Your Email',
+    resetEmailSent: 'If an account exists with this email, you will receive a password reset link shortly.',
+    resetFailed: 'Reset Failed',
   },
   es: {
     login: 'Iniciar Sesión',
@@ -340,6 +347,13 @@ const translations = {
     dayAgo: 'día antes',
     daysAgo: 'días antes',
     min: 'min',
+    // Password Reset
+    forgotPassword: '¿Olvidaste tu contraseña?',
+    emailRequired: 'Correo requerido',
+    emailRequiredMessage: 'Por favor ingresa tu correo electrónico para restablecer tu contraseña.',
+    checkYourEmail: 'Revisa tu correo',
+    resetEmailSent: 'Si existe una cuenta con este correo, recibirás un enlace para restablecer tu contraseña.',
+    resetFailed: 'Error al restablecer',
   },
   fr: {
     // Auth
@@ -497,6 +511,13 @@ const translations = {
     dayAgo: 'jour avant',
     daysAgo: 'jours avant',
     min: 'min',
+    // Password Reset
+    forgotPassword: 'Mot de passe oublié ?',
+    emailRequired: 'E-mail requis',
+    emailRequiredMessage: 'Veuillez entrer votre adresse e-mail pour réinitialiser votre mot de passe.',
+    checkYourEmail: 'Vérifiez votre e-mail',
+    resetEmailSent: 'Si un compte existe avec cet e-mail, vous recevrez un lien de réinitialisation.',
+    resetFailed: 'Échec de la réinitialisation',
   },
   de: {
     // Auth
@@ -654,6 +675,13 @@ const translations = {
     dayAgo: 'Tag zuvor',
     daysAgo: 'Tage zuvor',
     min: 'Min',
+    // Password Reset
+    forgotPassword: 'Passwort vergessen?',
+    emailRequired: 'E-Mail erforderlich',
+    emailRequiredMessage: 'Bitte geben Sie Ihre E-Mail-Adresse ein, um Ihr Passwort zurückzusetzen.',
+    checkYourEmail: 'Prüfen Sie Ihre E-Mail',
+    resetEmailSent: 'Wenn ein Konto mit dieser E-Mail existiert, erhalten Sie in Kürze einen Link zum Zurücksetzen.',
+    resetFailed: 'Zurücksetzen fehlgeschlagen',
   },
   it: {
     // Auth
@@ -811,6 +839,13 @@ const translations = {
     dayAgo: 'giorno fa',
     daysAgo: 'giorni fa',
     min: 'min',
+    // Password Reset
+    forgotPassword: 'Password dimenticata?',
+    emailRequired: 'E-mail richiesta',
+    emailRequiredMessage: 'Inserisci il tuo indirizzo e-mail per reimpostare la password.',
+    checkYourEmail: 'Controlla la tua e-mail',
+    resetEmailSent: 'Se esiste un account con questa e-mail, riceverai presto un link per reimpostare la password.',
+    resetFailed: 'Reimpostazione fallita',
   },
   pt: {
     // Auth
@@ -968,6 +1003,13 @@ const translations = {
     dayAgo: 'dia atrás',
     daysAgo: 'dias atrás',
     min: 'min',
+    // Password Reset
+    forgotPassword: 'Esqueceu a senha?',
+    emailRequired: 'E-mail necessário',
+    emailRequiredMessage: 'Por favor, insira seu endereço de e-mail para redefinir sua senha.',
+    checkYourEmail: 'Verifique seu e-mail',
+    resetEmailSent: 'Se existir uma conta com este e-mail, você receberá um link de redefinição em breve.',
+    resetFailed: 'Falha ao redefinir',
   },
   zh: {
     // Auth
@@ -1125,6 +1167,13 @@ const translations = {
     dayAgo: '天前',
     daysAgo: '天前',
     min: '分钟',
+    // Password Reset
+    forgotPassword: '忘记密码？',
+    emailRequired: '需要电子邮件',
+    emailRequiredMessage: '请输入您的电子邮件地址以重置密码。',
+    checkYourEmail: '请查看您的邮箱',
+    resetEmailSent: '如果存在使用此电子邮件的账户，您将很快收到重置密码的链接。',
+    resetFailed: '重置失败',
   },
   ja: {
     // Auth
@@ -1282,6 +1331,13 @@ const translations = {
     dayAgo: '日前',
     daysAgo: '日前',
     min: '分',
+    // Password Reset
+    forgotPassword: 'パスワードを忘れましたか？',
+    emailRequired: 'メールアドレスが必要です',
+    emailRequiredMessage: 'パスワードをリセットするにはメールアドレスを入力してください。',
+    checkYourEmail: 'メールを確認してください',
+    resetEmailSent: 'このメールアドレスのアカウントが存在する場合、まもなくリセットリンクが届きます。',
+    resetFailed: 'リセットに失敗しました',
   },
   ko: {
     // Auth
@@ -1439,6 +1495,13 @@ const translations = {
     dayAgo: '일 전',
     daysAgo: '일 전',
     min: '분',
+    // Password Reset
+    forgotPassword: '비밀번호를 잊으셨나요?',
+    emailRequired: '이메일이 필요합니다',
+    emailRequiredMessage: '비밀번호를 재설정하려면 이메일 주소를 입력하세요.',
+    checkYourEmail: '이메일을 확인하세요',
+    resetEmailSent: '이 이메일로 등록된 계정이 있다면, 곧 재설정 링크를 받게 됩니다.',
+    resetFailed: '재설정 실패',
   },
   ar: {
     // Auth
@@ -1596,6 +1659,13 @@ const translations = {
     dayAgo: 'يوم مضى',
     daysAgo: 'أيام مضت',
     min: 'دقيقة',
+    // Password Reset
+    forgotPassword: 'نسيت كلمة المرور؟',
+    emailRequired: 'البريد الإلكتروني مطلوب',
+    emailRequiredMessage: 'يرجى إدخال بريدك الإلكتروني لإعادة تعيين كلمة المرور.',
+    checkYourEmail: 'تحقق من بريدك الإلكتروني',
+    resetEmailSent: 'إذا كان هناك حساب مرتبط بهذا البريد، ستتلقى رابط إعادة التعيين قريباً.',
+    resetFailed: 'فشل إعادة التعيين',
   },
   ru: {
     // Auth
@@ -1753,6 +1823,13 @@ const translations = {
     dayAgo: 'день назад',
     daysAgo: 'дней назад',
     min: 'мин',
+    // Password Reset
+    forgotPassword: 'Забыли пароль?',
+    emailRequired: 'Требуется email',
+    emailRequiredMessage: 'Введите адрес электронной почты для сброса пароля.',
+    checkYourEmail: 'Проверьте почту',
+    resetEmailSent: 'Если аккаунт с этим email существует, вы скоро получите ссылку для сброса пароля.',
+    resetFailed: 'Ошибка сброса',
   },
   hi: {
     // Auth
@@ -1910,6 +1987,13 @@ const translations = {
     dayAgo: 'दिन पहले',
     daysAgo: 'दिन पहले',
     min: 'मिनट',
+    // Password Reset
+    forgotPassword: 'पासवर्ड भूल गए?',
+    emailRequired: 'ईमेल आवश्यक है',
+    emailRequiredMessage: 'अपना पासवर्ड रीसेट करने के लिए कृपया अपना ईमेल पता दर्ज करें।',
+    checkYourEmail: 'अपना ईमेल जांचें',
+    resetEmailSent: 'यदि इस ईमेल से कोई खाता मौजूद है, तो आपको जल्द ही एक रीसेट लिंक प्राप्त होगा।',
+    resetFailed: 'रीसेट विफल',
   },
   he: {
     // Auth
@@ -2067,6 +2151,13 @@ const translations = {
     dayAgo: 'יום לפני',
     daysAgo: 'ימים לפני',
     min: 'דקות',
+    // Password Reset
+    forgotPassword: 'שכחת סיסמה?',
+    emailRequired: 'נדרש אימייל',
+    emailRequiredMessage: 'אנא הזן את כתובת האימייל שלך כדי לאפס את הסיסמה.',
+    checkYourEmail: 'בדוק את האימייל שלך',
+    resetEmailSent: 'אם קיים חשבון עם אימייל זה, תקבל בקרוב קישור לאיפוס סיסמה.',
+    resetFailed: 'האיפוס נכשל',
   },
 };
 

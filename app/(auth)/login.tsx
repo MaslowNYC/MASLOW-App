@@ -44,6 +44,9 @@ const COLORS = {
 // Welcome greetings
 const WELCOME_GREETINGS: Record<LanguageCode, string> = {
   en: 'Welcome',
+  'en-GB': 'Welcome',
+  'en-IE': 'Welcome',
+  'en-AU': 'Welcome',
   es: 'Bienvenido',
   fr: 'Bienvenue',
   de: 'Willkommen',
@@ -256,6 +259,34 @@ export default function AuthScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Email Required', 'Please enter your email address to reset your password.');
+      return;
+    }
+
+    haptics.light();
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: 'maslow://reset-password',
+    });
+
+    setLoading(false);
+
+    if (error) {
+      haptics.warning();
+      Alert.alert('Reset Failed', error.message);
+    } else {
+      haptics.success();
+      Alert.alert(
+        'Check Your Email',
+        'If an account exists with this email, you will receive a password reset link shortly.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const rotatingLang = SUPPORTED_LANGUAGES[rotatingIndex];
 
   return (
@@ -404,6 +435,15 @@ export default function AuthScreen() {
                   />
                   {mode === 'signup' && (
                     <Text style={styles.hint}>Minimum 6 characters</Text>
+                  )}
+                  {mode === 'signin' && (
+                    <TouchableOpacity
+                      onPress={handleForgotPassword}
+                      disabled={loading}
+                      style={styles.forgotPasswordButton}
+                    >
+                      <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
 
@@ -648,6 +688,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.gray,
     marginTop: 4,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    color: COLORS.accent,
+    fontWeight: '500',
   },
 
   // Submit Button
