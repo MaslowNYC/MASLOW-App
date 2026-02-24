@@ -5,5 +5,5 @@ export { SessionTimer } from './SessionTimer';
 export { FloatingHomeButton } from './FloatingHomeButton';
 export { ConciergeBubble } from './ConciergeBubble';
 export { ConciergeChat } from './ConciergeChat';
-export { LanguageBubble } from './LanguageBubble';
 export { AccessibilityQuestionnaire } from './AccessibilityQuestionnaire';
+export { PreferencesModal } from './PreferencesModal';

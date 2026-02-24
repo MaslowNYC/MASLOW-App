@@ -60,8 +60,8 @@ const NYC_SCENES = [
   { color: '#16213e', label: 'Evening Glow' },
 ];
 
-const AUTHENTICATED_INTERVAL = 4000; // 4 seconds per image
-const AUTHENTICATED_FADE_DURATION = 600;
+const AUTHENTICATED_INTERVAL = 5000; // 5 seconds per image
+const AUTHENTICATED_FADE_DURATION = 1200; // Slower dissolve
 const UNAUTHENTICATED_INTERVAL = 8000;
 const UNAUTHENTICATED_FADE_DURATION = 1000;
 
@@ -71,8 +71,10 @@ export default function HomeScreen() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [firstName, setFirstName] = useState<string>('');
 
-  // Carousel state
+  // Carousel state - track both indices for smooth crossfade
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [nextIndex, setNextIndex] = useState(1);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const nextFadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -117,17 +119,20 @@ export default function HomeScreen() {
     }
   };
 
-  // Carousel animation
+  // Carousel animation - smooth crossfade without glitches
   useEffect(() => {
-    if (isAuthenticated === null) return;
+    if (isAuthenticated === null || isTransitioning) return;
 
     const images = isAuthenticated ? MASLOW_IMAGES : NYC_SCENES;
     const interval = isAuthenticated ? AUTHENTICATED_INTERVAL : UNAUTHENTICATED_INTERVAL;
     const fadeDuration = isAuthenticated ? AUTHENTICATED_FADE_DURATION : UNAUTHENTICATED_FADE_DURATION;
 
-    const timer = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % images.length;
+    const timer = setTimeout(() => {
+      setIsTransitioning(true);
+      const upcomingIndex = (currentIndex + 1) % images.length;
+      setNextIndex(upcomingIndex);
 
+      // Crossfade: current fades out, next fades in
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -140,14 +145,17 @@ export default function HomeScreen() {
           useNativeDriver: true,
         }),
       ]).start(() => {
-        setCurrentIndex(nextIndex);
+        // After fade completes, swap indices and reset opacities
+        setCurrentIndex(upcomingIndex);
+        setNextIndex((upcomingIndex + 1) % images.length);
         fadeAnim.setValue(1);
         nextFadeAnim.setValue(0);
+        setIsTransitioning(false);
       });
     }, interval);
 
-    return () => clearInterval(timer);
-  }, [isAuthenticated, currentIndex]);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, currentIndex, isTransitioning]);
 
   // Loading state
   if (isAuthenticated === null) {
@@ -160,7 +168,7 @@ export default function HomeScreen() {
 
   // Unauthenticated UI
   if (!isAuthenticated) {
-    const nextIndex = (currentIndex + 1) % NYC_SCENES.length;
+    const displayNextIndex = nextIndex % NYC_SCENES.length;
 
     return (
       <View style={styles.unauthContainer}>
@@ -187,11 +195,11 @@ export default function HomeScreen() {
             style={[
               styles.scenePlaceholder,
               styles.nextScene,
-              { backgroundColor: NYC_SCENES[nextIndex].color, opacity: nextFadeAnim },
+              { backgroundColor: NYC_SCENES[displayNextIndex].color, opacity: nextFadeAnim },
             ]}
           >
             <Ionicons name="film-outline" size={48} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.sceneLabel}>{NYC_SCENES[nextIndex].label}</Text>
+            <Text style={styles.sceneLabel}>{NYC_SCENES[displayNextIndex].label}</Text>
           </Animated.View>
 
           {/* Gradient Overlay */}
@@ -246,7 +254,7 @@ export default function HomeScreen() {
   }
 
   // Authenticated UI
-  const nextIndex = (currentIndex + 1) % MASLOW_IMAGES.length;
+  const displayNextIndex = nextIndex % MASLOW_IMAGES.length;
 
   return (
     <SafeAreaView style={styles.authContainer} edges={['top']}>
@@ -273,13 +281,13 @@ export default function HomeScreen() {
         {/* Next Image */}
         <Animated.View style={[styles.imageWrapper, styles.nextImage, { opacity: nextFadeAnim }]}>
           <Image
-            source={MASLOW_IMAGES[nextIndex].source}
+            source={MASLOW_IMAGES[displayNextIndex].source}
             style={styles.heroImage}
             resizeMode="cover"
           />
           <View style={styles.imageOverlay}>
             <Text style={styles.overlayText}>New York's First Real Restroom</Text>
-            <Text style={styles.overlaySubtext}>{MASLOW_IMAGES[nextIndex].caption}</Text>
+            <Text style={styles.overlaySubtext}>{MASLOW_IMAGES[displayNextIndex].caption}</Text>
           </View>
         </Animated.View>
 

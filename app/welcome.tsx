@@ -7,23 +7,231 @@ import {
   Animated,
   Dimensions,
   Image,
-  Modal,
-  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../src/hooks/useHaptics';
-import i18n, {
-  SUPPORTED_LANGUAGES,
-  LanguageCode,
-  setLanguage,
-  saveLanguagePreference,
-} from '../src/i18n';
-import { useLanguage } from '../src/context/LanguageContext';
+import i18n from '../src/i18n';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// "Get In Line" variations from around the world (80+ languages)
+// Each one "corrects" the previous - a celebration of how humans wait
+interface LineVariation {
+  text: string;
+  region: string;
+  isEnglish?: boolean;
+}
+
+const LINE_VARIATIONS: LineVariation[] = [
+  // Top 10 American English variations (sprinkled every 3rd rotation)
+  { text: 'Get In Line', region: 'American English', isEnglish: true },
+  { text: 'Get ON Line', region: 'New York City', isEnglish: true },
+  { text: 'Line Up', region: 'American English', isEnglish: true },
+  { text: 'Hop In Line', region: 'Casual American', isEnglish: true },
+  { text: 'Wait in Line', region: 'Midwestern US', isEnglish: true },
+  { text: 'Stand in Line', region: 'Southern US', isEnglish: true },
+  { text: 'Fall In', region: 'Military English', isEnglish: true },
+  { text: 'Take Your Place', region: 'Formal American', isEnglish: true },
+  { text: 'Step Right Up', region: 'Classic American', isEnglish: true },
+  { text: 'Join the Line', region: 'American English', isEnglish: true },
+
+  // British/Commonwealth variations
+  { text: 'Join the Queue', region: 'British English' },
+  { text: 'Queue Up', region: 'UK / Australia' },
+  { text: 'Form a Queue', region: 'New Zealand' },
+
+  // Spanish variations
+  { text: 'Hacer Cola', region: 'España' },
+  { text: 'Ponerse en la Fila', region: 'México' },
+  { text: 'Hacer Fila', region: 'América Latina' },
+  { text: 'Meterse en la Cola', region: 'Argentina' },
+  { text: 'Formar Fila', region: 'Colombia' },
+  { text: 'Colocarse en la Fila', region: 'Venezuela' },
+
+  // Portuguese variations
+  { text: 'Entrar na Fila', region: 'Brasil' },
+  { text: 'Pegar a Fila', region: 'Brasil (coloquial)' },
+  { text: 'Fazer Fila', region: 'Portugal' },
+  { text: 'Entrar na Bicha', region: 'Portugal (coloquial)' },
+
+  // French variations
+  { text: 'Faire la Queue', region: 'France' },
+  { text: 'Se Mettre en File', region: 'Québec' },
+  { text: 'Prendre la File', region: 'Belgique' },
+  { text: 'Faire la File', region: 'Suisse' },
+
+  // German variations
+  { text: 'Anstellen', region: 'Deutschland' },
+  { text: 'In die Schlange Stellen', region: 'Österreich' },
+  { text: 'Einreihen', region: 'Schweiz' },
+  { text: 'Sich Anstellen', region: 'Formal Deutsch' },
+
+  // Italian variations
+  { text: 'Fare la Fila', region: 'Italia' },
+  { text: 'Mettersi in Coda', region: 'Italia (Nord)' },
+  { text: 'Fare la Coda', region: 'Italia (Sud)' },
+
+  // Chinese variations
+  { text: '排队', region: '中国大陆' },
+  { text: '排隊', region: '台灣' },
+  { text: '排隊等候', region: '香港' },
+  { text: '轮候', region: '新加坡' },
+
+  // Japanese variations
+  { text: '列に並ぶ', region: '日本' },
+  { text: '並んで待つ', region: '日本 (丁寧)' },
+  { text: '順番を待つ', region: '日本 (フォーマル)' },
+
+  // Korean variations
+  { text: '줄서기', region: '한국' },
+  { text: '줄을 서다', region: '한국 (정중)' },
+  { text: '대기하다', region: '한국 (공식)' },
+
+  // Arabic variations
+  { text: 'انضم للطابور', region: 'الفصحى' },
+  { text: 'قف في الصف', region: 'مصر' },
+  { text: 'خذ دورك', region: 'الخليج' },
+  { text: 'استنى دورك', region: 'لبنان' },
+  { text: 'وقّف بالصف', region: 'الأردن' },
+  { text: 'ادخل الطابور', region: 'السعودية' },
+  { text: 'قيّد في الطابور', region: 'اليمن' },
+  { text: 'خش الطابور', region: 'السودان' },
+
+  // Russian variations
+  { text: 'Встать в Очередь', region: 'Россия' },
+  { text: 'Занять Очередь', region: 'Россия (разг.)' },
+  { text: 'Стати в Чергу', region: 'Україна' },
+
+  // Hindi variations
+  { text: 'लाइन में लगें', region: 'भारत' },
+  { text: 'कतार में लगें', region: 'भारत (औपचारिक)' },
+  { text: 'क़तार में आएं', region: 'उर्दू' },
+
+  // Hebrew variations
+  { text: 'הצטרף לתור', region: 'ישראל' },
+  { text: 'עמוד בתור', region: 'ישראל (רשמי)' },
+  { text: 'קח תור', region: 'ישראל (דיבור)' },
+
+  // Dutch variations
+  { text: 'In de Rij Gaan Staan', region: 'Nederland' },
+  { text: 'Aanschuiven', region: 'België' },
+
+  // Polish variations
+  { text: 'Ustawić się w Kolejce', region: 'Polska' },
+  { text: 'Stanąć w Kolejce', region: 'Polska (potoczny)' },
+
+  // Turkish variations
+  { text: 'Sıraya Gir', region: 'Türkiye' },
+  { text: 'Kuyruğa Gir', region: 'Türkiye (günlük)' },
+
+  // Greek variations
+  { text: 'Μπες στην Ουρά', region: 'Ελλάδα' },
+  { text: 'Πάρε Σειρά', region: 'Κύπρος' },
+
+  // Swedish variations
+  { text: 'Ställ Dig i Kön', region: 'Sverige' },
+  { text: 'Köa', region: 'Sverige (vardagligt)' },
+
+  // Norwegian variations
+  { text: 'Stå i Kø', region: 'Norge' },
+  { text: 'Still Deg i Køen', region: 'Norge (formelt)' },
+
+  // Danish variations
+  { text: 'Stå i Kø', region: 'Danmark' },
+  { text: 'Stil Dig i Køen', region: 'Danmark (formelt)' },
+
+  // Finnish variations
+  { text: 'Jonoon', region: 'Suomi' },
+  { text: 'Mene Jonoon', region: 'Suomi (virallinen)' },
+
+  // Thai variations
+  { text: 'ต่อแถว', region: 'ไทย' },
+  { text: 'เข้าแถว', region: 'ไทย (ทางการ)' },
+
+  // Vietnamese variations
+  { text: 'Xếp Hàng', region: 'Việt Nam' },
+  { text: 'Vào Hàng', region: 'Việt Nam (miền Nam)' },
+
+  // Indonesian variations
+  { text: 'Antre', region: 'Indonesia' },
+  { text: 'Mengantri', region: 'Indonesia (formal)' },
+
+  // Malay variations
+  { text: 'Beratur', region: 'Malaysia' },
+  { text: 'Berbaris', region: 'Malaysia (formal)' },
+
+  // Tagalog/Filipino variations
+  { text: 'Pumila', region: 'Pilipinas' },
+  { text: 'Sumali sa Pila', region: 'Pilipinas (pormal)' },
+
+  // Swahili variations
+  { text: 'Simama Kwenye Foleni', region: 'Kenya / Tanzania' },
+  { text: 'Ingia Foleni', region: 'Afrika Mashariki' },
+
+  // Yoruba (Nigeria)
+  { text: 'Dúró Ní Ìlà', region: 'Nigeria (Yorùbá)' },
+
+  // Zulu (South Africa)
+  { text: 'Yima Emgqeni', region: 'South Africa (isiZulu)' },
+
+  // Haitian Creole
+  { text: 'Fè Liy', region: 'Ayiti' },
+
+  // Hawaiian
+  { text: 'E Kū i ka Laina', region: 'Hawaiʻi' },
+
+  // Irish Gaelic
+  { text: 'Seas sa Scuaine', region: 'Éire' },
+
+  // Scottish Gaelic
+  { text: 'Seas san t-Sreath', region: 'Alba' },
+
+  // Welsh
+  { text: 'Sefwch yn y Ciw', region: 'Cymru' },
+
+  // Catalan
+  { text: 'Fer Cua', region: 'Catalunya' },
+
+  // Basque
+  { text: 'Ilaran Jarri', region: 'Euskadi' },
+];
+
+// Shuffle array helper
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Create interleaved array with English every 3 options (NYC-based app)
+const createInterleavedVariations = (): LineVariation[] => {
+  const english = shuffleArray(LINE_VARIATIONS.filter(v => v.isEnglish));
+  const nonEnglish = shuffleArray(LINE_VARIATIONS.filter(v => !v.isEnglish));
+
+  const result: LineVariation[] = [];
+  let engIndex = 0;
+  let nonEngIndex = 0;
+
+  // Pattern: English, non-English, non-English, English, non-English, non-English...
+  while (engIndex < english.length || nonEngIndex < nonEnglish.length) {
+    // Add English variation at positions 0, 3, 6, 9...
+    if (engIndex < english.length) {
+      result.push(english[engIndex++]);
+    }
+    // Add 2 non-English variations
+    for (let i = 0; i < 2 && nonEngIndex < nonEnglish.length; i++) {
+      result.push(nonEnglish[nonEngIndex++]);
+    }
+  }
+
+  return result;
+};
 
 const COLORS = {
   background: '#0a1628',
@@ -37,38 +245,25 @@ const COLORS = {
   grayLight: '#9ca3af',
 };
 
-// Welcome greetings in each language
-const WELCOME_GREETINGS: Record<LanguageCode, string> = {
-  en: 'Welcome',
-  es: 'Bienvenido',
-  fr: 'Bienvenue',
-  de: 'Willkommen',
-  it: 'Benvenuto',
-  pt: 'Bem-vindo',
-  zh: '欢迎',
-  ja: 'ようこそ',
-  ko: '환영합니다',
-  ar: 'مرحبا',
-  ru: 'Добро пожаловать',
-  hi: 'स्वागत है',
-  he: 'ברוך הבא',
-};
-
 const ROTATION_INTERVAL = 2500;
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const haptics = useHaptics();
-  const { language } = useLanguage();
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>('en');
-  const [rotatingIndex, setRotatingIndex] = useState(0);
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+  // Rotating "Get In Line" button state
+  const [lineVariations] = useState(() => createInterleavedVariations());
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
 
   // Animations
   const logoScale = useRef(new Animated.Value(0.9)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Button text animations
+  const buttonTextOpacity = useRef(new Animated.Value(1)).current;
+  const regionOpacity = useRef(new Animated.Value(1)).current;
 
   // Entrance animations
   useEffect(() => {
@@ -94,32 +289,47 @@ export default function WelcomeScreen() {
     ]).start();
   }, []);
 
-  // Rotating language animation for bubble
+  // Rotating "Get In Line" button - pauses on press
   useEffect(() => {
+    if (isButtonPressed) return;
+
     const interval = setInterval(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setRotatingIndex((prev) => (prev + 1) % SUPPORTED_LANGUAGES.length);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
+      // Animate out (text only - button stays fixed size)
+      Animated.parallel([
+        Animated.timing(buttonTextOpacity, {
+          toValue: 0,
+          duration: 150,
           useNativeDriver: true,
-        }).start();
+        }),
+        Animated.timing(regionOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // Update text
+        setCurrentLineIndex((prev) => (prev + 1) % lineVariations.length);
+
+        // Animate in
+        Animated.parallel([
+          Animated.timing(buttonTextOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(regionOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
       });
     }, ROTATION_INTERVAL);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isButtonPressed, lineVariations.length]);
 
-  const handleLanguageChange = async (code: LanguageCode) => {
-    haptics.medium();
-    setCurrentLanguage(code);
-    setLanguage(code);
-    setShowLanguageModal(false);
-  };
+  const currentLine = lineVariations[currentLineIndex];
 
   const handleGetInLine = () => {
     haptics.medium();
@@ -130,8 +340,6 @@ export default function WelcomeScreen() {
     haptics.light();
     router.push('/(auth)/login?mode=signin');
   };
-
-  const rotatingLang = SUPPORTED_LANGUAGES[rotatingIndex];
 
   return (
     <View style={styles.container}>
@@ -166,7 +374,7 @@ export default function WelcomeScreen() {
             {/* Square Logo */}
             <View style={styles.logoContainer}>
               <Image
-                source={require('../assets/maslow-logo.png')}
+                source={require('../assets/Maslow.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -190,15 +398,34 @@ export default function WelcomeScreen() {
               { opacity: contentOpacity },
             ]}
           >
-            {/* Get In Line Button */}
+            {/* Rotating "Get In Line" Button */}
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleGetInLine}
+              onPressIn={() => setIsButtonPressed(true)}
+              onPressOut={() => setIsButtonPressed(false)}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryButtonText}>{i18n.t('getInLine')}</Text>
-              <Ionicons name="arrow-forward" size={18} color={COLORS.accent} />
+              <Animated.Text
+                style={[
+                  styles.primaryButtonText,
+                  { opacity: buttonTextOpacity },
+                ]}
+                numberOfLines={1}
+              >
+                {currentLine.text}
+              </Animated.Text>
             </TouchableOpacity>
+
+            {/* Region indicator - fades with button text */}
+            <Animated.Text
+              style={[
+                styles.regionIndicator,
+                { opacity: regionOpacity },
+              ]}
+            >
+              {currentLine.region}
+            </Animated.Text>
 
             {/* Member Access */}
             <TouchableOpacity
@@ -211,83 +438,7 @@ export default function WelcomeScreen() {
             </TouchableOpacity>
           </Animated.View>
         </View>
-
-        {/* Language Bubble - Bottom Right */}
-        <Animated.View style={[styles.languageBubble, { opacity: contentOpacity }]}>
-          <TouchableOpacity
-            style={styles.languageBubbleInner}
-            onPress={() => {
-              haptics.light();
-              setShowLanguageModal(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Animated.View style={{ opacity: fadeAnim }}>
-              <Text style={styles.languageGreeting}>
-                {WELCOME_GREETINGS[rotatingLang.code]}
-              </Text>
-              <Text style={styles.languageName}>{rotatingLang.name.toUpperCase()}</Text>
-            </Animated.View>
-            <Text style={styles.languageHint}>{i18n.t('selectLanguage')}</Text>
-          </TouchableOpacity>
-        </Animated.View>
       </SafeAreaView>
-
-      {/* Language Selection Modal */}
-      <Modal
-        visible={showLanguageModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowLanguageModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{i18n.t('selectLanguage')}</Text>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowLanguageModal(false)}
-            >
-              <Ionicons name="close" size={24} color={COLORS.gray} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            style={styles.languageList}
-            contentContainerStyle={styles.languageListContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {SUPPORTED_LANGUAGES.map((lang) => {
-              const isSelected = lang.code === currentLanguage;
-              return (
-                <TouchableOpacity
-                  key={lang.code}
-                  style={[
-                    styles.languageItem,
-                    isSelected && styles.languageItemSelected,
-                  ]}
-                  onPress={() => handleLanguageChange(lang.code)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.languageItemLeft}>
-                    <Text style={styles.languageItemFlag}>{lang.flag}</Text>
-                    <View>
-                      <Text style={[
-                        styles.languageItemNative,
-                        isSelected && styles.languageItemNativeSelected,
-                      ]}>
-                        {lang.native}
-                      </Text>
-                      <Text style={styles.languageItemEnglish}>{lang.name}</Text>
-                    </View>
-                  </View>
-                  {isSelected && (
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -338,7 +489,6 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 160,
     height: 160,
-    borderRadius: 20,
   },
   tagline: {
     fontSize: 18,
@@ -378,10 +528,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   primaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
     width: '100%',
     paddingVertical: 18,
     borderRadius: 8,
@@ -395,6 +543,17 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     letterSpacing: 3,
   },
+  regionIndicator: {
+    fontSize: 9,
+    fontWeight: '400',
+    color: COLORS.grayLight,
+    opacity: 0.4,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginTop: -12,
+    marginBottom: 4,
+  },
   memberAccessButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -406,113 +565,5 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.grayLight,
     letterSpacing: 2,
-  },
-
-  // Language Bubble
-  languageBubble: {
-    position: 'absolute',
-    bottom: 40,
-    right: 20,
-  },
-  languageBubbleInner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    minWidth: 160,
-  },
-  languageGreeting: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: COLORS.accent,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  languageName: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.gray,
-    letterSpacing: 2,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  languageHint: {
-    fontSize: 10,
-    color: COLORS.grayLight,
-    textAlign: 'center',
-  },
-
-  // Modal
-  modalContainer: {
-    flex: 1,
-    backgroundColor: COLORS.cream,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: COLORS.white,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.background,
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  languageList: {
-    flex: 1,
-  },
-  languageListContent: {
-    padding: 16,
-    gap: 8,
-  },
-  languageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.white,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    marginBottom: 8,
-  },
-  languageItemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: `${COLORS.primary}08`,
-  },
-  languageItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  languageItemFlag: {
-    fontSize: 28,
-  },
-  languageItemNative: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.background,
-  },
-  languageItemNativeSelected: {
-    color: COLORS.primary,
-  },
-  languageItemEnglish: {
-    fontSize: 13,
-    color: COLORS.gray,
-    marginTop: 2,
   },
 });

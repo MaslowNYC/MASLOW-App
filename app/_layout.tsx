@@ -4,7 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase, getSafeSession, clearAuthState } from '../lib/supabase';
 import SplashScreen from '../src/components/SplashScreen';
-import { ConciergeBubble, AccessibilityQuestionnaire } from '../src/components';
+import { ConciergeBubble, AccessibilityQuestionnaire, PreferencesModal } from '../src/components';
 import { AccessibilityProvider } from '../src/context/AccessibilityContext';
 import { ConciergeProvider } from '../src/context/ConciergeContext';
 import { LanguageProvider } from '../src/context/LanguageContext';
@@ -16,6 +16,7 @@ function RootLayoutContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [showContent, setShowContent] = useState(false); // Homepage renders underneath splash
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
@@ -65,35 +66,47 @@ function RootLayoutContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Check if user needs to complete accessibility onboarding
+  // Check if user needs to complete accessibility onboarding or see preferences modal
   useEffect(() => {
-    const checkAccessibilityOnboarding = async () => {
+    const checkOnboarding = async () => {
       if (!session) {
         setShowQuestionnaire(false);
+        setShowPreferencesModal(false);
         return;
       }
 
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('accessibility_onboarded')
+          .select('accessibility_onboarded, accessibility_settings')
           .eq('id', session.user.id)
           .single();
 
         if (error) {
-          console.error('Error checking accessibility onboarding:', error);
+          console.error('Error checking onboarding:', error);
           return;
         }
 
         // Show questionnaire if not onboarded
-        setShowQuestionnaire(data?.accessibility_onboarded !== true);
+        if (data?.accessibility_onboarded !== true) {
+          setShowQuestionnaire(true);
+          setShowPreferencesModal(false);
+        } else {
+          // Already onboarded - check if preferences modal should show
+          setShowQuestionnaire(false);
+          const settings = data?.accessibility_settings || {};
+          // Show preferences modal on login unless user opted out
+          if (!settings.skip_preferences_modal) {
+            setShowPreferencesModal(true);
+          }
+        }
       } catch (error) {
-        console.error('Error checking accessibility onboarding:', error);
+        console.error('Error checking onboarding:', error);
       }
     };
 
     if (!loading && session && !showSplash) {
-      checkAccessibilityOnboarding();
+      checkOnboarding();
     }
   }, [session, loading, showSplash]);
 
@@ -114,6 +127,12 @@ function RootLayoutContent() {
 
   const handleQuestionnaireComplete = () => {
     setShowQuestionnaire(false);
+    // Show preferences modal after questionnaire completes
+    setShowPreferencesModal(true);
+  };
+
+  const handlePreferencesClose = () => {
+    setShowPreferencesModal(false);
   };
 
   // Render homepage underneath splash for smooth crossfade
@@ -130,6 +149,15 @@ function RootLayoutContent() {
               <AccessibilityQuestionnaire onComplete={handleQuestionnaireComplete} />
             )}
 
+            {/* Preferences Modal - shows after onboarding or on subsequent logins */}
+            {!showSplash && session && !showQuestionnaire && (
+              <PreferencesModal
+                isOpen={showPreferencesModal}
+                onClose={handlePreferencesClose}
+                userId={session.user.id}
+              />
+            )}
+
             {/* AI Concierge bubble - only show when logged in, splash done, and onboarded */}
             {!showSplash && session && !showQuestionnaire && (
               <ConciergeBubble userId={session.user.id} />
@@ -141,6 +169,7 @@ function RootLayoutContent() {
                 <SplashScreen
                   onStart={() => setShowContent(true)}
                   onFinish={() => setShowSplash(false)}
+                  variant={loading ? null : (session ? 'authenticated' : 'unauthenticated')}
                 />
               </View>
             )}

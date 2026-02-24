@@ -313,8 +313,8 @@ export default function TermsScreen() {
 
         {/* CONTACT */}
         <Text style={styles.sectionTitle}>Contact Us</Text>
-        <Text style={styles.contactInfo}>Questions: support@maslownyc.com</Text>
-        <Text style={styles.contactInfo}>Legal: patrick@maslownyc.com</Text>
+        <Text style={styles.contactInfo}>Questions: support@maslow.nyc</Text>
+        <Text style={styles.contactInfo}>Legal: patrick@maslow.nyc</Text>
         <Text style={styles.contactInfo}>Address: 456 7th Ave #2, Brooklyn, NY 11215</Text>
 
         {/* Draft Notice - Bottom */}

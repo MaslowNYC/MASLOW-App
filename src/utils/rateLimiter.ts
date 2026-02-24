@@ -156,7 +156,7 @@ export async function checkRateLimit(userId: string): Promise<RateLimitStatus> {
         dailyRemaining: 0,
         hourlyRemaining,
         resetTime: getESTMidnight(),
-        message: `You've used your ${DAILY_LIMIT} daily chats. Resets at midnight EST. Need help? support@maslownyc.com`,
+        message: `You've used your ${DAILY_LIMIT} daily chats. Resets at midnight EST. Need help? support@maslow.nyc`,
       };
     }
 

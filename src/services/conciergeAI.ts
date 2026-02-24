@@ -178,7 +178,7 @@ export async function sendMessage(
       console.error('Concierge API error:', error);
       return {
         success: false,
-        error: "I'm taking a quick break right now. Please try again in a moment, or contact support@maslownyc.com for assistance.",
+        error: "I'm taking a quick break right now. Please try again in a moment, or contact support@maslow.nyc for assistance.",
         rateLimitStatus,
       };
     }

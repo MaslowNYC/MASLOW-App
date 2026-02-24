@@ -853,26 +853,6 @@ export default function EditProfileScreen() {
             )}
           </View>
 
-          {/* Account Deletion Note */}
-          <View style={styles.deletionNote}>
-            <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
-            <Text style={styles.deletionText}>
-              Need to delete your account?{' '}
-              <Text
-                style={styles.deletionLink}
-                onPress={() => {
-                  Alert.alert(
-                    'Delete Account',
-                    "To delete your account, please email support@maslownyc.com with your request. We'll process it within 24 hours.",
-                    [{ text: 'OK' }]
-                  );
-                }}
-              >
-                Contact us
-              </Text>
-            </Text>
-          </View>
-
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -1257,28 +1237,4 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 
-  // Account Deletion Note
-  deletionNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  deletionText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
-  deletionLink: {
-    color: colors.navy,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
 });

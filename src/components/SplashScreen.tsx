@@ -7,15 +7,19 @@ import {
   Easing,
 } from 'react-native';
 
+type SplashVariant = 'authenticated' | 'unauthenticated' | null;
+
 interface SplashScreenProps {
   onFinish: () => void;
   onStart?: () => void;
+  variant?: SplashVariant; // null = still loading auth
 }
 
 const { width, height } = Dimensions.get('window');
 
 // Brand colors
 const CREAM = '#FAF4ED';
+const DARK_BG = '#0a1628';
 
 // Animation timing
 const INITIAL_HOLD = 500; // Hold on Maslow_1 for 0.5s
@@ -49,26 +53,89 @@ const FRAME_TIMINGS = [
   0.92,   // Frame 7 (Maslow_8) - settle
 ];
 
-// Target position
+// Target positions for authenticated (down to home button)
 const TAB_BAR_HEIGHT = 70;
 const HOME_BUTTON_SIZE = 68;
 const SAFE_AREA_BOTTOM = 34;
-const TARGET_Y = (height / 2) - SAFE_AREA_BOTTOM - (TAB_BAR_HEIGHT - HOME_BUTTON_SIZE / 2);
+const TARGET_Y_DOWN = (height / 2) - SAFE_AREA_BOTTOM - (TAB_BAR_HEIGHT - HOME_BUTTON_SIZE / 2);
 
-// Scale ratio
+// Target position for unauthenticated (up to welcome logo)
+// Welcome logo is roughly 1/3 from top of screen
+const SAFE_AREA_TOP = 50;
+const WELCOME_LOGO_CENTER = height * 0.35; // Approximate center of logo on welcome screen
+const TARGET_Y_UP = -(height / 2 - WELCOME_LOGO_CENTER);
+
+// Scale ratios
 const LOGO_SIZE = 180;
 const HOME_BUTTON_LOGO_SIZE = 54;
-const TARGET_SCALE = HOME_BUTTON_LOGO_SIZE / LOGO_SIZE;
+const WELCOME_LOGO_SIZE = 160;
+const TARGET_SCALE_DOWN = HOME_BUTTON_LOGO_SIZE / LOGO_SIZE;
+const TARGET_SCALE_UP = WELCOME_LOGO_SIZE / LOGO_SIZE;
 
-export default function SplashScreen({ onFinish, onStart }: SplashScreenProps) {
+export default function SplashScreen({ onFinish, onStart, variant }: SplashScreenProps) {
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [spinComplete, setSpinComplete] = useState(false);
+  const [hasTriggeredEnding, setHasTriggeredEnding] = useState(false);
 
   // Animation values
   const rotationAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const translateYAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const bgColorAnim = useRef(new Animated.Value(0)).current; // 0 = cream, 1 = dark
 
+  // Run ending animation based on variant
+  const runEndingAnimation = (authVariant: 'authenticated' | 'unauthenticated') => {
+    if (hasTriggeredEnding) return;
+    setHasTriggeredEnding(true);
+
+    const isAuthenticated = authVariant === 'authenticated';
+    const targetY = isAuthenticated ? TARGET_Y_DOWN : TARGET_Y_UP;
+    const targetScale = isAuthenticated ? TARGET_SCALE_DOWN : TARGET_SCALE_UP;
+
+    // PHASE 3: Move to target position
+    const animations: Animated.CompositeAnimation[] = [
+      Animated.timing(translateYAnim, {
+        toValue: targetY,
+        duration: DRIFT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: targetScale,
+        duration: DRIFT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ];
+
+    // For unauthenticated, also fade background to dark
+    if (!isAuthenticated) {
+      animations.push(
+        Animated.timing(bgColorAnim, {
+          toValue: 1,
+          duration: DRIFT_DURATION,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false, // backgroundColor can't use native driver
+        })
+      );
+    }
+
+    Animated.parallel(animations).start(() => {
+      // PHASE 4: Hold then fade
+      setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: FADE_DURATION,
+          useNativeDriver: true,
+        }).start(() => {
+          onFinish();
+        });
+      }, HOLD_DURATION);
+    });
+  };
+
+  // Initial animation: hold and spin
   useEffect(() => {
     onStart?.();
 
@@ -97,42 +164,23 @@ export default function SplashScreen({ onFinish, onStart }: SplashScreenProps) {
       Animated.timing(rotationAnim, {
         toValue: 4, // 1440°
         duration: SPIN_DURATION,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1), // Slow start, fast middle, slow end
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         useNativeDriver: true,
       }).start(() => {
         // Clear any remaining timeouts
         frameTimeouts.forEach(t => clearTimeout(t));
         setCurrentFrame(frames.length - 1); // Ensure Maslow_8
-
-        // PHASE 3: Drop down with deceleration
-        Animated.parallel([
-          Animated.timing(translateYAnim, {
-            toValue: TARGET_Y,
-            duration: DRIFT_DURATION,
-            easing: Easing.out(Easing.cubic), // Fast start, gentle landing
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: TARGET_SCALE,
-            duration: DRIFT_DURATION,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          // PHASE 4: Hold then fade
-          setTimeout(() => {
-            Animated.timing(fadeAnim, {
-              toValue: 0,
-              duration: FADE_DURATION,
-              useNativeDriver: true,
-            }).start(() => {
-              onFinish();
-            });
-          }, HOLD_DURATION);
-        });
+        setSpinComplete(true);
       });
     }, INITIAL_HOLD);
   }, []);
+
+  // When spin completes AND variant is known, run ending animation
+  useEffect(() => {
+    if (spinComplete && variant && !hasTriggeredEnding) {
+      runEndingAnimation(variant);
+    }
+  }, [spinComplete, variant, hasTriggeredEnding]);
 
   // Interpolate rotation (1440° = 4 full rotations)
   const rotation = rotationAnim.interpolate({
@@ -140,8 +188,14 @@ export default function SplashScreen({ onFinish, onStart }: SplashScreenProps) {
     outputRange: ['0deg', '1440deg'],
   });
 
+  // Interpolate background color (cream to dark)
+  const backgroundColor = bgColorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [CREAM, DARK_BG],
+  });
+
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim, backgroundColor }]}>
       <Animated.Image
         source={frames[currentFrame]}
         style={[
@@ -163,7 +217,6 @@ export default function SplashScreen({ onFinish, onStart }: SplashScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CREAM,
     justifyContent: 'center',
     alignItems: 'center',
     width: width,

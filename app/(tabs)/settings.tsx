@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { colors, spacing } from '../../src/theme';
-import { MaslowCard, LanguageBubble } from '../../src/components';
+import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import i18n, { SUPPORTED_LANGUAGES, LanguageCode, setLanguage, saveLanguagePreference, loadLanguagePreference } from '../../src/i18n';
 import { useConcierge } from '../../src/context/ConciergeContext';
@@ -357,9 +357,23 @@ export default function SettingsScreen() {
           </MaslowCard>
         </View>
 
-        {/* Sign Out */}
+        {/* Account Actions */}
         <View style={styles.section}>
           <MaslowCard padding="sm">
+            <MenuItem
+              icon="trash-outline"
+              label={i18n.t('deleteAccount')}
+              onPress={() => {
+                Alert.alert(
+                  i18n.t('deleteAccount'),
+                  i18n.t('deleteAccountMessage'),
+                  [{ text: 'OK' }]
+                );
+              }}
+              showChevron={false}
+              danger
+            />
+            <View style={styles.menuDivider} />
             <MenuItem
               icon="log-out-outline"
               label={i18n.t('signOut')}
@@ -427,7 +441,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.lightGray,
   },
@@ -450,22 +464,22 @@ const styles = StyleSheet.create({
     width: 70, // Balance the back button width
   },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.md,
   },
 
   // Sections
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.darkGray,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: spacing.sm,
+    marginBottom: 4,
     marginLeft: spacing.xs,
   },
 
@@ -474,17 +488,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   menuItemLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.navy,
-    marginLeft: spacing.md,
+    marginLeft: spacing.sm,
   },
   menuItemDanger: {
     color: colors.error,
@@ -492,15 +506,15 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: 1,
     backgroundColor: colors.lightGray,
-    marginHorizontal: spacing.md,
+    marginHorizontal: spacing.sm,
   },
 
   // Version
   version: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.darkGray,
     textAlign: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
   },
 
   // Language
@@ -519,23 +533,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
   accessibilityLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   accessibilityText: {
-    marginLeft: spacing.md,
+    marginLeft: spacing.sm,
     flex: 1,
   },
   accessibilityDesc: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.darkGray,
-    marginTop: 2,
+    marginTop: 1,
   },
 
   // Modal

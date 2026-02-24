@@ -61,7 +61,6 @@ export default function QuickVisitScreen() {
       const { data, error } = await supabase
         .from('locations')
         .select('id, name, address, available_suites, total_suites')
-        .eq('is_operational', true)
         .order('name');
 
       if (error) {

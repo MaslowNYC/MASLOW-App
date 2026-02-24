@@ -16,8 +16,6 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../src/theme';
 import { useHaptics } from '../src/hooks/useHaptics';
-import { LanguageBubble } from '../src/components';
-import { LanguageCode, setLanguage } from '../src/i18n';
 import { useLanguage } from '../src/context/LanguageContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -50,12 +48,6 @@ export default function UnauthenticatedHomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>('en');
-
-  const handleLanguageChange = (code: LanguageCode) => {
-    setCurrentLanguage(code);
-    setLanguage(code);
-  };
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const nextFadeAnim = useRef(new Animated.Value(0)).current;
@@ -179,12 +171,6 @@ export default function UnauthenticatedHomeScreen() {
           By continuing, you agree to our Terms of Service
         </Text>
       </SafeAreaView>
-
-      {/* Language Selection Bubble */}
-      <LanguageBubble
-        currentLanguage={currentLanguage}
-        onLanguageChange={handleLanguageChange}
-      />
     </View>
   );
 }

@@ -247,7 +247,7 @@ export default function PrivacyScreen() {
 
         <Text style={styles.subTitle}>To Exercise Your Rights:</Text>
         <View style={styles.bulletList}>
-          <Text style={styles.bullet}>• Email: support@maslownyc.com</Text>
+          <Text style={styles.bullet}>• Email: support@maslow.nyc</Text>
           <Text style={styles.bullet}>• Subject: "Privacy Request - [Your Request]"</Text>
           <Text style={styles.bullet}>• We respond within 10 business days</Text>
         </View>
@@ -384,8 +384,8 @@ export default function PrivacyScreen() {
         <Text style={styles.paragraph}>
           Questions about privacy?
         </Text>
-        <Text style={styles.contactInfo}>Email: support@maslownyc.com</Text>
-        <Text style={styles.contactInfo}>Privacy concerns: patrick@maslownyc.com</Text>
+        <Text style={styles.contactInfo}>Email: support@maslow.nyc</Text>
+        <Text style={styles.contactInfo}>Privacy concerns: patrick@maslow.nyc</Text>
         <Text style={styles.contactInfo}>Mail: Maslow LLC, 456 7th Ave #2, Brooklyn, NY 11215</Text>
         <Text style={styles.paragraphSmall}>
           We respond to privacy inquiries within 10 business days.
