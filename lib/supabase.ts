@@ -1,12 +1,16 @@
-
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import type { Database } from '../src/types/database.types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
@@ -16,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Listen for auth state changes and handle errors
-supabase.auth.onAuthStateChange(async (event, session) => {
+supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
   console.log('Auth state changed:', event, session?.user?.email || 'no user');
 
   // Clear invalid sessions
@@ -27,7 +31,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 });
 
 // Helper to clear all auth state
-export async function clearAuthState() {
+export async function clearAuthState(): Promise<void> {
   try {
     // Clear Supabase auth keys from AsyncStorage
     const keys = await AsyncStorage.getAllKeys();
@@ -46,7 +50,7 @@ export async function clearAuthState() {
 }
 
 // Helper to safely get session without throwing errors
-export async function getSafeSession() {
+export async function getSafeSession(): Promise<Session | null> {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -67,7 +71,7 @@ export async function getSafeSession() {
 }
 
 // Helper to safely refresh session
-export async function refreshSession() {
+export async function refreshSession(): Promise<Session | null> {
   try {
     const { data: { session }, error } = await supabase.auth.refreshSession();
 

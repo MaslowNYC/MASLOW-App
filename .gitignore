@@ -44,14 +44,8 @@ yarn-error.*
 .env
 .env.local
 
-# Environment
-.env
-.env.local
-
-# Environment
-.env
-.env.local
-
-# Environment
-.env
-.env.local
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
