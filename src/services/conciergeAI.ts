@@ -18,6 +18,7 @@ export interface ConciergeResponse {
   message?: string;
   error?: string;
   rateLimitStatus?: RateLimitStatus;
+  budgetExceeded?: boolean;
 }
 
 const SYSTEM_PROMPT = `You are Maslow Concierge, an expert assistant for Maslow - a luxury wellness and self-care company in New York City that provides private suites for personal grooming, relaxation, and self-renewal.
@@ -186,9 +187,33 @@ export async function sendMessage(
     // Check for error in response body (from Edge Function)
     if (data?.error) {
       console.error('Concierge response error:', data.error);
+
+      // Handle budget exceeded - use the message from the server
+      if (data.budget_exceeded) {
+        return {
+          success: false,
+          error: data.message || "Our AI Concierge has reached its monthly capacity and will return on the 1st of next month. For immediate assistance, please email hello@maslow.nyc 💙",
+          budgetExceeded: true,
+          rateLimitStatus,
+        };
+      }
+
+      // Handle rate limit exceeded
+      if (data.limitReached) {
+        return {
+          success: false,
+          error: data.error,
+          rateLimitStatus: {
+            canSend: false,
+            dailyRemaining: data.remainingChats || 0,
+            message: data.error,
+          },
+        };
+      }
+
       return {
         success: false,
-        error: "I'm having trouble connecting right now. Our team has been notified. Please try again shortly.",
+        error: data.message || "I'm having trouble connecting right now. Please try again shortly.",
         rateLimitStatus,
       };
     }

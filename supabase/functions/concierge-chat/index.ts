@@ -28,6 +28,20 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // PHASE 1: Concierge disabled for MVP launch
+  // TODO PHASE 2: Remove this block and implement budget cap ($500/month)
+  // Cost: ~$0.75 per conversation
+  return new Response(
+    JSON.stringify({
+      error: 'Feature Not Available',
+      message: 'The AI Concierge will be available soon! For assistance, email hello@maslow.nyc'
+    }),
+    {
+      status: 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  );
+
   try {
     if (!ANTHROPIC_API_KEY) {
       console.error('ANTHROPIC_API_KEY not configured. Check supabase secrets.');

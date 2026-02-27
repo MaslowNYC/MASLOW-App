@@ -18,6 +18,7 @@ import {
   sendMessage,
   loadConversationHistory,
   ChatMessage,
+  ConciergeResponse,
 } from '../services/conciergeAI';
 import { checkRateLimit, RateLimitStatus } from '../utils/rateLimiter';
 
@@ -51,6 +52,7 @@ export function ConciergeChat({ userId, onClose }: ConciergeChatProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [budgetExceeded, setBudgetExceeded] = useState(false);
 
   // Load conversation history and check rate limits on mount
   useEffect(() => {
@@ -115,6 +117,11 @@ export function ConciergeChat({ userId, onClose }: ConciergeChatProps) {
       if (response.success && response.assistantMessage) {
         setMessages((prev) => [...prev, response.assistantMessage!]);
       } else if (response.error) {
+        // Check if budget exceeded
+        if (response.budgetExceeded) {
+          setBudgetExceeded(true);
+        }
+
         // Show error as system message
         const errorMessage: ChatMessage = {
           id: `error-${Date.now()}`,
@@ -145,7 +152,7 @@ export function ConciergeChat({ userId, onClose }: ConciergeChatProps) {
 
   const charCount = inputText.length;
   const isOverLimit = charCount > MAX_CHARS;
-  const canSend = inputText.trim().length > 0 && !isOverLimit && !isLoading && rateLimitStatus?.canSend;
+  const canSend = inputText.trim().length > 0 && !isOverLimit && !isLoading && rateLimitStatus?.canSend && !budgetExceeded;
 
   const remainingMessages = rateLimitStatus?.dailyRemaining ?? DAILY_LIMIT;
 
@@ -291,13 +298,19 @@ export function ConciergeChat({ userId, onClose }: ConciergeChatProps) {
             <TextInput
               ref={inputRef}
               style={[styles.input, isOverLimit && styles.inputError]}
-              placeholder={rateLimitStatus?.canSend ? "Ask me anything about NYC or Maslow..." : "Daily limit reached"}
+              placeholder={
+                budgetExceeded
+                  ? "Concierge unavailable until next month"
+                  : rateLimitStatus?.canSend
+                    ? "Ask me anything about NYC or Maslow..."
+                    : "Daily limit reached"
+              }
               placeholderTextColor={COLORS.darkGray}
               value={inputText}
               onChangeText={setInputText}
               multiline
               maxLength={MAX_CHARS + 50} // Allow typing over limit to show error
-              editable={rateLimitStatus?.canSend && !isLoading}
+              editable={rateLimitStatus?.canSend && !isLoading && !budgetExceeded}
               returnKeyType="default"
             />
             <View style={styles.inputFooter}>
