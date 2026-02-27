@@ -158,10 +158,11 @@ function RootLayoutContent() {
               />
             )}
 
-            {/* AI Concierge bubble - budget protected at $500/month */}
+            {/* DISABLED UNTIL LAUNCH
             {!showSplash && session && !showQuestionnaire && (
               <ConciergeBubble userId={session.user.id} />
             )}
+            */}
 
             {/* Splash overlays on top, fades to reveal homepage */}
             {showSplash && (
