@@ -158,7 +158,7 @@ function RootLayoutContent() {
               />
             )}
 
-            {/* AI Concierge bubble - only show when logged in, splash done, and onboarded */}
+            {/* AI Concierge bubble - budget protected at $500/month */}
             {!showSplash && session && !showQuestionnaire && (
               <ConciergeBubble userId={session.user.id} />
             )}
