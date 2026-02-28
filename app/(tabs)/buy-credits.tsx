@@ -12,10 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useStripe } from '@stripe/stripe-react-native';
 import { colors, spacing } from '../../src/theme';
 import { MaslowButton } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
-import { supabase } from '../../lib/supabase';
+import { supabase, getSafeSession } from '../../lib/supabase';
 
 interface CreditBundle {
   id: string;
@@ -75,6 +76,7 @@ const FOUNDING_MEMBER_BUNDLE: CreditBundle = {
 export default function BuyCreditsScreen() {
   const router = useRouter();
   const haptics = useHaptics();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [selectedBundle, setSelectedBundle] = useState<CreditBundle | null>(null);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
@@ -133,43 +135,101 @@ export default function BuyCreditsScreen() {
     }
 
     haptics.medium();
+    setPurchasing(true);
 
-    Alert.alert(
-      'Purchase Credits',
-      `${selectedBundle.credits} credits for $${selectedBundle.price}\n\nStripe payment integration coming soon!`,
-      [
-        { text: 'Cancel', style: 'cancel' },
+    try {
+      // 1. Get auth session
+      const session = await getSafeSession();
+      if (!session) {
+        Alert.alert('Error', 'Please sign in to purchase credits');
+        return;
+      }
+
+      // 2. Create payment intent via edge function
+      const response = await fetch(
+        'https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/create-payment-intent',
         {
-          text: 'Test: Add Credits',
-          onPress: async () => {
-            setPurchasing(true);
-            try {
-              const newBalance = currentBalance + selectedBundle.credits;
-              const { error } = await supabase
-                .from('profiles')
-                .update({ credits: newBalance })
-                .eq('id', userId);
-
-              if (error) throw error;
-
-              haptics.success();
-              setCurrentBalance(newBalance);
-              setSelectedBundle(null);
-              Alert.alert(
-                'Success!',
-                `Added ${selectedBundle.credits} credits to your account!\n\nNew balance: ${newBalance} credits`
-              );
-            } catch (error) {
-              console.error('Purchase error:', error);
-              haptics.error();
-              Alert.alert('Error', 'Failed to add credits. Please try again.');
-            } finally {
-              setPurchasing(false);
-            }
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
           },
+          body: JSON.stringify({
+            amount: selectedBundle.price * 100,
+            userId,
+            credits: selectedBundle.credits,
+            packageName: selectedBundle.label || `${selectedBundle.credits} Credits`,
+          }),
+        }
+      );
+
+      const { clientSecret, error: intentError } = await response.json();
+
+      if (intentError || !clientSecret) {
+        throw new Error(intentError || 'Failed to create payment');
+      }
+
+      // 3. Init payment sheet
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Maslow NYC',
+        applePay: {
+          merchantCountryCode: 'US',
         },
-      ]
-    );
+        googlePay: {
+          merchantCountryCode: 'US',
+          testEnv: true,
+        },
+        style: 'automatic',
+      });
+
+      if (initError) throw new Error(initError.message);
+
+      // 4. Present payment sheet
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        if (paymentError.code === 'Canceled') return; // user dismissed, not an error
+        throw new Error(paymentError.message);
+      }
+
+      // 5. Payment succeeded — update credits in Supabase
+      const newBalance = currentBalance + selectedBundle.credits;
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ credits: newBalance })
+        .eq('id', userId);
+
+      if (dbError) throw dbError;
+
+      // 6. Record transaction (wrapped in try/catch in case table doesn't exist)
+      try {
+        await supabase.from('credit_transactions').insert({
+          user_id: userId,
+          amount: selectedBundle.credits,
+          type: 'purchase',
+          description: `Purchased ${selectedBundle.label || selectedBundle.credits + ' Credits'}`,
+          price_paid: selectedBundle.price,
+        });
+      } catch (txError) {
+        console.warn('Could not record transaction:', txError);
+      }
+
+      haptics.success();
+      setCurrentBalance(newBalance);
+      setSelectedBundle(null);
+      Alert.alert(
+        '✓ Purchase Complete',
+        `${selectedBundle.credits} credits added to your account!\n\nNew balance: ${newBalance} credits`
+      );
+
+    } catch (error: any) {
+      console.error('Purchase error:', error);
+      haptics.error();
+      Alert.alert('Payment Failed', error.message || 'Please try again.');
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   const BundleCard = ({ bundle }: { bundle: CreditBundle }) => {

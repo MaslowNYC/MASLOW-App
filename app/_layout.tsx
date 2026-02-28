@@ -2,6 +2,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Session } from '@supabase/supabase-js';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import { supabase, getSafeSession, clearAuthState } from '../lib/supabase';
 import SplashScreen from '../src/components/SplashScreen';
 import { ConciergeBubble, AccessibilityQuestionnaire, PreferencesModal } from '../src/components';
@@ -182,7 +183,14 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  return <RootLayoutContent />;
+  return (
+    <StripeProvider
+      publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
+      merchantIdentifier="merchant.com.maslownyc"
+    >
+      <RootLayoutContent />
+    </StripeProvider>
+  );
 }
 
 const styles = StyleSheet.create({

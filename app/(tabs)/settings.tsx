@@ -17,7 +17,6 @@ import { colors, spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import i18n, { SUPPORTED_LANGUAGES, LanguageCode, setLanguage, saveLanguagePreference, loadLanguagePreference } from '../../src/i18n';
-import { useConcierge } from '../../src/context/ConciergeContext';
 import { useLanguage } from '../../src/context/LanguageContext';
 
 interface MenuItemProps {
@@ -83,7 +82,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const haptics = useHaptics();
   const { language } = useLanguage();
-  const { isVisible: showConcierge, setIsVisible: setShowConcierge } = useConcierge();
   const [userId, setUserId] = useState<string | null>(null);
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>('en');
   const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -216,22 +214,6 @@ export default function SettingsScreen() {
                 <Ionicons name="chevron-forward" size={18} color={colors.darkGray} />
               </View>
             </TouchableOpacity>
-            <View style={styles.menuDivider} />
-            <View style={styles.accessibilityItem}>
-              <View style={styles.accessibilityLeft}>
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.darkGray} />
-                <View style={styles.accessibilityText}>
-                  <Text style={styles.menuItemLabel}>{i18n.t('showConcierge')}</Text>
-                  <Text style={styles.accessibilityDesc}>{i18n.t('conciergeDesc')}</Text>
-                </View>
-              </View>
-              <Switch
-                value={showConcierge}
-                onValueChange={(value) => setShowConcierge(value)}
-                trackColor={{ false: colors.lightGray, true: colors.navy }}
-                thumbColor={colors.white}
-              />
-            </View>
             <View style={styles.menuDivider} />
             <MenuItem
               icon="shield-outline"

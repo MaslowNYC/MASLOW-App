@@ -36,6 +36,13 @@
         {
           "photosPermission": "Allow Maslow to access your photos to upload profile pictures"
         }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.maslownyc",
+          "enableGooglePay": true
+        }
       ]
     ],
     "extra": {
