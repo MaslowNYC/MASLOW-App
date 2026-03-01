@@ -169,17 +169,10 @@ export default function BuyCreditsScreen() {
         throw new Error(intentError || 'Failed to create payment');
       }
 
-      // 3. Init payment sheet
+      // 3. Init payment sheet (Apple Pay disabled until merchant ID configured in Apple Developer)
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: 'Maslow NYC',
-        applePay: {
-          merchantCountryCode: 'US',
-        },
-        googlePay: {
-          merchantCountryCode: 'US',
-          testEnv: true,
-        },
         style: 'automatic',
       });
 
