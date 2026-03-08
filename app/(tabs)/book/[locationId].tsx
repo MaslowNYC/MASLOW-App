@@ -15,7 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
+import { useStripe } from '@stripe/stripe-react-native';
+import { supabase, getSafeSession } from '../../../lib/supabase';
 import { colors, spacing } from '../../../src/theme';
 import { MaslowCard, MaslowButton } from '../../../src/components';
 import { useHaptics } from '../../../src/hooks/useHaptics';
@@ -424,16 +425,18 @@ export default function BookingFlowScreen() {
   const { locationId } = useLocalSearchParams<{ locationId: string }>();
   const router = useRouter();
   const haptics = useHaptics();
-  
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
   // State
   const [step, setStep] = useState<BookingStep>('time');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [awaitingBooking, setAwaitingBooking] = useState(false);
   const [location, setLocation] = useState<Location | null>(null);
   const [suites, setSuites] = useState<Suite[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [availablePasses, setAvailablePasses] = useState(0);
-  
+
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<'passes' | 'cash'>('passes');
 
@@ -601,92 +604,120 @@ export default function BookingFlowScreen() {
       return;
     }
 
-    if (availablePasses < 1) {
-      Alert.alert('Insufficient Passes', 'You need at least 1 pass to book');
-      return;
-    }
-
     try {
       setSubmitting(true);
       haptics.medium();
 
+      // 1. Get auth session
+      const session = await getSafeSession();
+      if (!session) {
+        Alert.alert('Error', 'Please sign in to book');
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Calculate end time
+      // Calculate end time for metadata
       const startTime = bookingData.date;
       const endTime = new Date(startTime.getTime() + bookingData.duration * 60000);
 
-      // Create booking
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          suite_id: bookingData.suite.id,
-          location_id: locationId,
-          start_time: startTime.toISOString(),
-          starts_at: startTime.toISOString(),
-          ends_at: endTime.toISOString(),
-          duration_minutes: bookingData.duration,
-          status: 'confirmed',
-          credits_used: 1,
-          preferences: bookingData.preferences,
-        })
-        .select()
-        .single();
+      // Calculate amount based on duration (in cents)
+      const durationOption = DURATION_OPTIONS.find(opt => opt.minutes === bookingData.duration);
+      const amountCents = (durationOption?.cash || 5) * 100;
 
-      if (bookingError) throw bookingError;
-
-      // Deduct credit (find oldest active credit and use it)
-      const { data: oldestCredit } = await supabase
-        .from('credits')
-        .select('id, amount')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .single();
-
-      if (oldestCredit) {
-        if (oldestCredit.amount === 1) {
-          // Use up the credit completely
-          await supabase
-            .from('credits')
-            .update({ status: 'used' })
-            .eq('id', oldestCredit.id);
-        } else {
-          // Reduce the amount
-          await supabase
-            .from('credits')
-            .update({ amount: oldestCredit.amount - 1 })
-            .eq('id', oldestCredit.id);
+      // 2. Create payment intent via API
+      const response = await fetch(
+        'https://maslow.nyc/api/stripe/create-payment-intent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: amountCents,
+            session_type: 'core',
+            user_id: user.id,
+            location_id: locationId,
+            suite_id: bookingData.suite.id,
+            starts_at: startTime.toISOString(),
+            ends_at: endTime.toISOString(),
+            duration_minutes: bookingData.duration,
+            preferences: bookingData.preferences,
+          }),
         }
+      );
+
+      const { clientSecret, error: intentError } = await response.json();
+
+      if (intentError || !clientSecret) {
+        throw new Error(intentError || 'Failed to create payment');
       }
 
-      // Create transaction record
-      await supabase
-        .from('credit_transactions')
-        .insert({
-          user_id: user.id,
-          booking_id: booking.id,
-          amount: -1,
-          transaction_type: 'booking',
-          description: `Booking at ${location?.name}`,
-        });
+      // 3. Init payment sheet (handles Apple Pay / Google Pay automatically)
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Maslow NYC',
+        style: 'automatic',
+      });
 
-      // Mark suite as unavailable (for now - in production you'd have better availability management)
-      await supabase
-        .from('suites')
-        .update({ is_available: false })
-        .eq('id', bookingData.suite.id);
+      if (initError) throw new Error(initError.message);
 
+      // 4. Present payment sheet
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        if (paymentError.code === 'Canceled') {
+          // User dismissed payment sheet - not an error
+          return;
+        }
+        throw new Error(paymentError.message);
+      }
+
+      // 5. Payment succeeded - show waiting state and listen for booking
       haptics.success();
+      setAwaitingBooking(true);
       setStep('success');
 
-    } catch (err) {
+      // Track if we've already navigated
+      let hasNavigated = false;
+
+      // 6. Subscribe to Supabase realtime for this user's new bookings
+      const subscription = supabase
+        .channel('booking-confirmation')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'bookings',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            if (hasNavigated) return;
+            hasNavigated = true;
+            // Booking created by webhook - navigate to Pass tab
+            setAwaitingBooking(false);
+            subscription.unsubscribe();
+            haptics.success();
+            router.replace('/(tabs)/pass');
+          }
+        )
+        .subscribe();
+
+      // Timeout after 30 seconds if webhook doesn't fire
+      setTimeout(() => {
+        if (hasNavigated) return;
+        hasNavigated = true;
+        subscription.unsubscribe();
+        setAwaitingBooking(false);
+        // Still navigate - payment succeeded, booking should exist
+        router.replace('/(tabs)/pass');
+      }, 30000);
+
+    } catch (err: any) {
       console.error('Booking error:', err);
-      Alert.alert('Booking Failed', 'Failed to create booking. Please try again.');
+      Alert.alert('Payment Failed', err.message || 'Please try again.');
       haptics.error();
     } finally {
       setSubmitting(false);
@@ -1446,61 +1477,74 @@ export default function BookingFlowScreen() {
 
         {step === 'success' && (
           <View style={styles.successContainer}>
-            <Ionicons name="checkmark-circle" size={80} color={colors.success} />
-            <Text style={styles.successTitle}>Your Sanctuary Awaits!</Text>
-            <Text style={styles.successSubtitle}>
-              Booking confirmed at {location?.name}
-            </Text>
-            <View style={styles.successActions}>
-              <TouchableOpacity
-                style={styles.addCalendarButton}
-                onPress={() => {
-                  haptics.light();
-                  // Construct booking datetime
-                  const bookingDateTime = new Date(bookingData.date || new Date());
-                  if (bookingData.time) {
-                    const [hours, minutes] = bookingData.time.split(':').map(Number);
-                    bookingDateTime.setHours(hours, minutes, 0, 0);
-                  }
-                  addToCalendar({
-                    location: location?.name || 'Maslow',
-                    date: bookingDateTime,
-                    duration: bookingData.duration,
-                  });
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="calendar-outline" size={20} color={colors.gold} />
-                <Text style={styles.addCalendarButtonText}>Add to Calendar</Text>
-              </TouchableOpacity>
-              <MaslowButton
-                onPress={() => {
-                  haptics.light();
-                  router.replace('/(tabs)/');
-                }}
-                variant="secondary"
-                size="lg"
-              >
-                Back to Home
-              </MaslowButton>
-              <MaslowButton
-                onPress={() => {
-                  haptics.light();
-                  router.replace('/bookings');
-                }}
-                variant="primary"
-                size="lg"
-              >
-                View My Bookings
-              </MaslowButton>
-            </View>
-            <TouchableOpacity
-              onPress={() => router.replace('/(tabs)/profile')}
-              style={styles.successLink}
-            >
-              <Text style={styles.successLinkText}>Set up your preferences</Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.gold} />
-            </TouchableOpacity>
+            {awaitingBooking ? (
+              <>
+                <ActivityIndicator size="large" color={colors.gold} style={{ marginBottom: spacing.md }} />
+                <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+                <Text style={styles.successTitle}>Payment Confirmed</Text>
+                <Text style={styles.successSubtitle}>
+                  Preparing your suite...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={80} color={colors.success} />
+                <Text style={styles.successTitle}>Your Sanctuary Awaits!</Text>
+                <Text style={styles.successSubtitle}>
+                  Booking confirmed at {location?.name}
+                </Text>
+                <View style={styles.successActions}>
+                  <TouchableOpacity
+                    style={styles.addCalendarButton}
+                    onPress={() => {
+                      haptics.light();
+                      // Construct booking datetime
+                      const bookingDateTime = new Date(bookingData.date || new Date());
+                      if (bookingData.time) {
+                        const [hours, minutes] = bookingData.time.split(':').map(Number);
+                        bookingDateTime.setHours(hours, minutes, 0, 0);
+                      }
+                      addToCalendar({
+                        location: location?.name || 'Maslow',
+                        date: bookingDateTime,
+                        duration: bookingData.duration,
+                      });
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.gold} />
+                    <Text style={styles.addCalendarButtonText}>Add to Calendar</Text>
+                  </TouchableOpacity>
+                  <MaslowButton
+                    onPress={() => {
+                      haptics.light();
+                      router.replace('/(tabs)/');
+                    }}
+                    variant="secondary"
+                    size="lg"
+                  >
+                    Back to Home
+                  </MaslowButton>
+                  <MaslowButton
+                    onPress={() => {
+                      haptics.light();
+                      router.replace('/bookings');
+                    }}
+                    variant="primary"
+                    size="lg"
+                  >
+                    View My Bookings
+                  </MaslowButton>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.replace('/(tabs)/profile')}
+                  style={styles.successLink}
+                >
+                  <Text style={styles.successLinkText}>Set up your preferences</Text>
+                  <Ionicons name="arrow-forward" size={16} color={colors.gold} />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -1516,9 +1560,9 @@ export default function BookingFlowScreen() {
             onPress={step === 'review' ? handleConfirmBooking : handleNext}
             variant="primary"
             size="lg"
-            disabled={submitting}
+            disabled={submitting || awaitingBooking}
           >
-            {submitting ? 'Booking...' : step === 'review' ? 'Confirm Booking' : 'Continue'}
+            {submitting ? 'Processing...' : awaitingBooking ? 'Confirming...' : step === 'review' ? 'Pay & Book' : 'Continue'}
           </MaslowButton>
         </View>
       )}
