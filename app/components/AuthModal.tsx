@@ -20,7 +20,7 @@ const COLORS = {
   darkGray: '#2A2A2A',
   borderGray: '#3A3A3A',
   textGray: '#9CA3AF',
-  gold: '#C5A059',
+  gold: '#C49F58',
   white: '#FFFFFF',
   error: '#EF4444',
 };

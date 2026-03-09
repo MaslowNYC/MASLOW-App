@@ -3,9 +3,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
-const BLUE = '#2C5F8D';
+const BLUE = '#286BCD';
 const CREAM = '#F9F2EC';
-const GOLD = '#C5A059';
+const GOLD = '#C49F58';
 
 export default function HowItWorksScreen() {
   const router = useRouter();

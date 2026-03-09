@@ -19,7 +19,7 @@ const COLORS = {
   backgroundDark: '#050d1a',
   cardBackground: '#1a2332',
   cardBorder: '#2a3444',
-  accent: '#C5A059',
+  accent: '#C49F58',
   accentDark: '#a88a4a',
   cream: '#FAF4ED',
   gray: '#6b7280',

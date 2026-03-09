@@ -457,12 +457,6 @@ export default function AccountScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{i18n.t('account')}</Text>
-          <TouchableOpacity
-            onPress={() => handleNavigate('edit-profile')}
-            style={styles.editButton}
-          >
-            <Text style={styles.editButtonText}>{i18n.t('done')}</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Profile Card */}
@@ -647,24 +641,14 @@ const styles = StyleSheet.create({
     paddingBottom: 24, // was 32px
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
     alignItems: 'center',
-    paddingVertical: spacing.sm, // 8px (was 16px)
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: colors.navy,
-  },
-  editButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.gold,
+    textAlign: 'center',
   },
 
   // Profile Card

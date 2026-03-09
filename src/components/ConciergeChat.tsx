@@ -23,10 +23,10 @@ import {
 import { checkRateLimit, RateLimitStatus } from '../utils/rateLimiter';
 
 const COLORS = {
-  blue: '#286ABC',
+  blue: '#286BCD',
   cream: '#FAF4ED',
   white: '#FFFFFF',
-  gold: '#C5A059',
+  gold: '#C49F58',
   darkGray: '#4A5568',
   lightGray: '#E2E8F0',
   red: '#E53E3E',

@@ -20,10 +20,10 @@ import { useLanguage } from '../context/LanguageContext';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const COLORS = {
-  primaryBlue: '#3B5998',
-  primaryBlueLight: '#4A6FB3',
-  gold: '#C5A059',
-  cream: '#F5F1E8',
+  primaryBlue: '#286BCD',
+  primaryBlueLight: '#4080D9',
+  gold: '#C49F58',
+  cream: '#FAF4ED',
   white: '#FFFFFF',
   gray: '#6b7280',
   grayLight: '#9ca3af',

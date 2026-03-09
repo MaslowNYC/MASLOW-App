@@ -10,7 +10,7 @@ type IoniconsName = keyof typeof Ionicons.glyphMap;
 
 // Colors
 const COLORS = {
-  blue: '#286ABC',
+  blue: '#286BCD',
   cream: '#FAF4ED',
   gray: '#6B7280',
   white: '#FFFFFF',

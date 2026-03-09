@@ -21,11 +21,11 @@ import {
 } from '../i18n';
 
 const COLORS = {
-  blue: '#286ABC',
+  blue: '#286BCD',
   cream: '#FAF4ED',
   white: '#FFFFFF',
   navy: '#1A365D',
-  gold: '#C5A059',
+  gold: '#C49F58',
   darkGray: '#4A5568',
 };
 

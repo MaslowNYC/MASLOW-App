@@ -16,10 +16,10 @@ import { ConciergeChat } from './ConciergeChat';
 import { useConcierge } from '../context/ConciergeContext';
 
 const COLORS = {
-  blue: '#286ABC',
+  blue: '#286BCD',
   cream: '#FAF4ED',
   white: '#FFFFFF',
-  gold: '#C5A059',
+  gold: '#C49F58',
   darkGray: '#4A5568',
 };
 

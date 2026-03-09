@@ -4,9 +4,9 @@ import { useState } from 'react';
 import i18n from '../../src/i18n';
 import { useLanguage } from '../../src/context/LanguageContext';
 
-const BLUE = '#2C5F8D';
+const BLUE = '#286BCD';
 const CREAM = '#F9F2EC';
-const GOLD = '#C5A059';
+const GOLD = '#C49F58';
 const DARK = '#1A202C';
 
 export interface VisitSettings {

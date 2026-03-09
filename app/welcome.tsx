@@ -237,7 +237,7 @@ const COLORS = {
   background: '#0a1628',
   backgroundDark: '#050d1a',
   primary: '#3C5999',
-  accent: '#C5A059',
+  accent: '#C49F58',
   accentLight: '#d4b77a',
   cream: '#FAF4ED',
   white: '#FFFFFF',

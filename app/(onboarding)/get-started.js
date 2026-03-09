@@ -5,9 +5,9 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BLUE = '#2C5F8D';
+const BLUE = '#286BCD';
 const CREAM = '#F9F2EC';
-const GOLD = '#C5A059';
+const GOLD = '#C49F58';
 
 export default function GetStartedScreen() {
   const router = useRouter();

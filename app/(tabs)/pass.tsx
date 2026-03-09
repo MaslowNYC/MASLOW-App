@@ -235,11 +235,13 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: spacing.md,
     marginBottom: spacing.sm,
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: colors.navy,
+    textAlign: 'center',
   },
 
   // QR Code

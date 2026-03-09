@@ -219,16 +219,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: colors.navy,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
     color: colors.darkGray,
     marginTop: 2,
+    textAlign: 'center',
   },
   scrollContent: {
     padding: spacing.lg,

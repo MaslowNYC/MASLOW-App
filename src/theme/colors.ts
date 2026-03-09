@@ -1,8 +1,8 @@
 export const colors = {
   // PRIMARY PALETTE - Exact Maslow brand colors
-  navy: '#3C5999',
-  navyDark: '#2A4070',
-  navyLight: '#4D6BA8',
+  navy: '#286BCD',
+  navyDark: '#1E5299',
+  navyLight: '#4080D9',
 
   // ACCENT
   gold: '#C49F58',
@@ -10,7 +10,7 @@ export const colors = {
   goldDark: '#B38E47',
 
   // NEUTRALS
-  cream: '#F5F0E6',
+  cream: '#FAF4ED',
   white: '#FFFFFF',
   black: '#1E293B',
 
@@ -29,11 +29,23 @@ export const colors = {
   error: '#EF4444',
 
   // SURFACES (Light mode - matching website)
-  bgPrimary: '#F5F0E6',    // Cream background
+  bgPrimary: '#FAF4ED',    // Cream background
   bgSecondary: '#FFFFFF',   // White cards
   bgTertiary: '#F8F6F1',    // Slightly off-white
 
   // OVERLAYS
   overlay: 'rgba(0, 0, 0, 0.5)',
   shimmer: 'rgba(196, 159, 88, 0.1)',
+
+  // AUTH SCREEN (warm cream theme)
+  authGradientStart: '#fdf8f0',
+  authGradientMid: '#f5ede0',
+  authGradientEnd: '#ede4d4',
+  textPrimary: '#2a2218',
+  textMid: '#9a8e80',
+  textLight: '#b8ad9e',
+  inputBgLight: 'rgba(255,255,255,0.72)',
+  inputBorderLight: 'rgba(196,159,88,0.2)',
+  cardGlass: 'rgba(255,255,255,0.52)',
+  cardBorderGlass: 'rgba(255,255,255,0.75)',
 };

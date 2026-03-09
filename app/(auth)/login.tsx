@@ -12,125 +12,155 @@ import {
   Animated,
   Dimensions,
   Modal,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../src/hooks/useHaptics';
+import { useMaslowFonts, fonts } from '../../src/hooks/useMaslowFonts';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '../../src/i18n';
 import { useLanguage } from '../../src/context/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Brand colors for auth screen
 const COLORS = {
-  background: '#0a1628',
-  backgroundDark: '#050d1a',
-  cardBackground: '#1a2332',
-  cardBorder: '#2a3444',
-  primary: '#3C5999',
-  accent: '#C5A059',
-  accentDark: '#a88a4a',
+  blue: '#286BCD',
+  gold: '#C49F58',
   cream: '#FAF4ED',
+  text: '#2a2218',
+  mid: '#9a8e80',
+  light: '#b8ad9e',
   white: '#FFFFFF',
-  gray: '#6b7280',
-  grayLight: '#9ca3af',
-  inputBg: '#252d3d',
-  inputBorder: '#3a4454',
   error: '#ef4444',
+  // Gradient
+  gradientStart: '#fdf8f0',
+  gradientMid: '#f5ede0',
+  gradientEnd: '#ede4d4',
+  // Inputs
+  inputBg: 'rgba(255,255,255,0.72)',
+  inputBorder: 'rgba(196,159,88,0.2)',
+  inputFocusBorder: 'rgba(40,107,205,0.35)',
+  // Card
+  cardBg: 'rgba(255,255,255,0.52)',
+  cardBorder: 'rgba(255,255,255,0.75)',
 };
-
-// Welcome greetings
-const WELCOME_GREETINGS: Record<LanguageCode, string> = {
-  en: 'Welcome',
-  'en-GB': 'Welcome',
-  'en-IE': 'Welcome',
-  'en-AU': 'Welcome',
-  es: 'Bienvenido',
-  fr: 'Bienvenue',
-  de: 'Willkommen',
-  it: 'Benvenuto',
-  pt: 'Bem-vindo',
-  zh: '欢迎',
-  ja: 'ようこそ',
-  ko: '환영합니다',
-  ar: 'مرحبا',
-  ru: 'Добро пожаловать',
-  hi: 'स्वागत है',
-  he: 'ברוך הבא',
-};
-
-const ROTATION_INTERVAL = 2500;
 
 type AuthMode = 'signin' | 'signup';
+type SignupStep = 'credentials' | 'phone' | 'verification';
 
 export default function AuthScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const haptics = useHaptics();
+  const fontsLoaded = useMaslowFonts();
 
-  // Check if coming from signup button
+  // Auth mode
   const initialMode: AuthMode = params.mode === 'signup' ? 'signup' : 'signin';
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
+  // Signup step (only relevant when mode === 'signup')
+  const [signupStep, setSignupStep] = useState<SignupStep>('credentials');
+
   // Form state
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Verification code (6 digits)
+  const [verificationCode, setVerificationCode] = useState<string[]>(['', '', '', '', '', '']);
+  const codeInputRefs = useRef<Array<TextInput | null>>([]);
+
+  // Member number teaser
+  const [nextMemberNumber, setNextMemberNumber] = useState<number | null>(null);
 
   // Language state
   const { language: currentLanguage, changeLanguage, revertLanguage } = useLanguage();
-  const [rotatingIndex, setRotatingIndex] = useState(0);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Undo toast state
   const [showUndoToast, setShowUndoToast] = useState(false);
   const undoProgressAnim = useRef(new Animated.Value(1)).current;
-  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Entrance animation
+  // Entrance animations
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoTranslateY = useRef(new Animated.Value(10)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
-  const cardScale = useRef(new Animated.Value(0.95)).current;
+  const cardTranslateY = useRef(new Animated.Value(10)).current;
+  const dividerOpacity = useRef(new Animated.Value(0)).current;
 
+  // Run entrance animations on mount
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(cardOpacity, {
+    Animated.stagger(150, [
+      Animated.parallel([
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoTranslateY, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(dividerOpacity, {
         toValue: 1,
-        duration: 500,
+        duration: 400,
         useNativeDriver: true,
       }),
-      Animated.spring(cardScale, {
-        toValue: 1,
-        friction: 8,
-        tension: 50,
-        useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateY, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
   }, []);
 
-  // Rotating language animation
+  // Fetch next member number on mount
   useEffect(() => {
-    const interval = setInterval(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setRotatingIndex((prev) => (prev + 1) % SUPPORTED_LANGUAGES.length);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      });
-    }, ROTATION_INTERVAL);
+    const fetchNextMemberNumber = async () => {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
-    return () => clearInterval(interval);
+      if (!error && count !== null) {
+        setNextMemberNumber(count + 1);
+      }
+    };
+    fetchNextMemberNumber();
+  }, []);
+
+  // Reset signup step when switching modes
+  useEffect(() => {
+    if (mode === 'signup') {
+      setSignupStep('credentials');
+    }
+  }, [mode]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+      }
+    };
   }, []);
 
   const switchMode = (newMode: AuthMode) => {
@@ -138,25 +168,24 @@ export default function AuthScreen() {
     setMode(newMode);
   };
 
+  // ===================
+  // LANGUAGE HANDLING
+  // ===================
+
   const handleLanguageChange = async (code: LanguageCode) => {
     haptics.medium();
     setShowLanguageModal(false);
-
-    // Change language and get previous
     await changeLanguage(code);
 
-    // Show undo toast
     setShowUndoToast(true);
     undoProgressAnim.setValue(1);
 
-    // Start countdown animation
     Animated.timing(undoProgressAnim, {
       toValue: 0,
       duration: 4000,
       useNativeDriver: false,
     }).start();
 
-    // Auto-dismiss after 4 seconds
     if (undoTimerRef.current) {
       clearTimeout(undoTimerRef.current);
     }
@@ -167,28 +196,17 @@ export default function AuthScreen() {
 
   const handleUndo = async () => {
     haptics.light();
-
-    // Cancel timer
     if (undoTimerRef.current) {
       clearTimeout(undoTimerRef.current);
       undoTimerRef.current = null;
     }
-
-    // Revert language
     await revertLanguage();
-
-    // Dismiss toast immediately
     setShowUndoToast(false);
   };
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (undoTimerRef.current) {
-        clearTimeout(undoTimerRef.current);
-      }
-    };
-  }, []);
+  // ===================
+  // SIGN IN
+  // ===================
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -209,54 +227,6 @@ export default function AuthScreen() {
       Alert.alert('Sign In Failed', error.message);
     }
     setLoading(false);
-  };
-
-  const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
-
-    haptics.medium();
-    setLoading(true);
-
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          phone: phone.trim(),
-        },
-      },
-    });
-
-    if (error) {
-      haptics.warning();
-      Alert.alert('Sign Up Failed', error.message);
-      setLoading(false);
-    } else {
-      haptics.success();
-      // Create profile in profiles table
-      if (data.user) {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-        });
-      }
-      Alert.alert('Success', 'Account created! Please check your email to verify.');
-      setMode('signin');
-      setLoading(false);
-    }
   };
 
   const handleForgotPassword = async () => {
@@ -287,18 +257,253 @@ export default function AuthScreen() {
     }
   };
 
-  const rotatingLang = SUPPORTED_LANGUAGES[rotatingIndex];
+  // ===================
+  // SIGN UP - STEP 1 (Credentials)
+  // ===================
+
+  const handleCredentialsNext = () => {
+    if (!firstName || !email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    haptics.light();
+    setSignupStep('phone');
+  };
+
+  // ===================
+  // SIGN UP - STEP 2 (Phone)
+  // ===================
+
+  const handleSendCode = async () => {
+    if (!phone) {
+      Alert.alert('Error', 'Please enter your phone number');
+      return;
+    }
+
+    haptics.medium();
+    setLoading(true);
+
+    // Create account with Supabase
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: {
+          first_name: firstName.trim(),
+        },
+      },
+    });
+
+    if (authError) {
+      haptics.warning();
+      Alert.alert('Sign Up Failed', authError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (!authData.user) {
+      Alert.alert('Error', 'Failed to create account');
+      setLoading(false);
+      return;
+    }
+
+    setUserId(authData.user.id);
+
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Clean phone number
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    // Create profile with verification code
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: authData.user.id,
+      first_name: firstName.trim(),
+      phone: cleanPhone,
+      email: email.trim(),
+      verification_code: parseInt(code),
+      code_expires_at: expiresAt.toISOString(),
+      phone_verified: false,
+    });
+
+    if (profileError) {
+      console.error('Profile error:', profileError);
+    }
+
+    // DEV MODE: Show code in alert
+    console.log(`[SMS] Verification code for ${phone}: ${code}`);
+    Alert.alert(
+      'Code Sent',
+      `Verification code sent to ${phone}\n\n[DEV MODE: Code is ${code}]`
+    );
+
+    setLoading(false);
+    haptics.success();
+    setSignupStep('verification');
+  };
+
+  // ===================
+  // SIGN UP - STEP 3 (Verification)
+  // ===================
+
+  const handleCodeChange = (index: number, value: string) => {
+    // Only allow single digit
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newCode = [...verificationCode];
+    newCode[index] = digit;
+    setVerificationCode(newCode);
+
+    // Auto-advance to next input
+    if (digit && index < 5) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleCodeKeyPress = (index: number, key: string) => {
+    // Handle backspace - go to previous input
+    if (key === 'Backspace' && !verificationCode[index] && index > 0) {
+      codeInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    const enteredCode = verificationCode.join('');
+
+    if (enteredCode.length !== 6) {
+      Alert.alert('Invalid Code', 'Please enter the 6-digit code');
+      return;
+    }
+
+    if (!userId) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    haptics.medium();
+    setLoading(true);
+
+    // Fetch stored code from profiles
+    const { data: profile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('verification_code, code_expires_at')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !profile) {
+      Alert.alert('Error', 'Failed to verify code');
+      setLoading(false);
+      return;
+    }
+
+    // Check code matches
+    if (profile.verification_code?.toString() !== enteredCode) {
+      haptics.warning();
+      Alert.alert('Invalid Code', 'The code you entered is incorrect');
+      setLoading(false);
+      return;
+    }
+
+    // Check expiration
+    if (new Date(profile.code_expires_at) < new Date()) {
+      Alert.alert('Code Expired', 'The verification code has expired. Please request a new one.');
+      setLoading(false);
+      return;
+    }
+
+    // Mark phone as verified
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        phone_verified: true,
+        verification_code: null,
+        code_expires_at: null,
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      Alert.alert('Error', 'Failed to verify phone number');
+      setLoading(false);
+      return;
+    }
+
+    haptics.success();
+    setLoading(false);
+    Alert.alert('Welcome to Maslow!', 'Your account has been created successfully.');
+  };
+
+  const handleResendCode = async () => {
+    if (!userId) return;
+
+    haptics.light();
+    setLoading(true);
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    const { error } = await supabase.from('profiles').update({
+      verification_code: parseInt(code),
+      code_expires_at: expiresAt.toISOString(),
+    }).eq('id', userId);
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Error', 'Failed to resend code');
+      return;
+    }
+
+    console.log(`[SMS] Verification code resent: ${code}`);
+    Alert.alert('Code Sent', `New verification code sent!\n\n[DEV MODE: Code is ${code}]`);
+  };
+
+  const handleSignupBack = () => {
+    haptics.light();
+    if (signupStep === 'phone') {
+      setSignupStep('credentials');
+    } else if (signupStep === 'verification') {
+      setSignupStep('phone');
+    }
+  };
+
+  // Get current language info
+  const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage) || SUPPORTED_LANGUAGES[0];
+
+  // Loading state while fonts load
+  if (!fontsLoaded) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Dark gradient background */}
+      {/* Warm cream gradient background */}
       <LinearGradient
-        colors={[COLORS.backgroundDark, COLORS.background, COLORS.backgroundDark]}
-        locations={[0, 0.5, 1]}
-        style={styles.gradientBackground}
+        colors={[COLORS.gradientStart, COLORS.gradientMid, COLORS.gradientEnd]}
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFillObject}
       />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/* Language Pill - Top Right */}
+        <TouchableOpacity
+          style={styles.languagePill}
+          onPress={() => {
+            haptics.light();
+            setShowLanguageModal(true);
+          }}
+        >
+          <Text style={styles.languagePillText}>{currentLang.code.toUpperCase()}</Text>
+          <Ionicons name="chevron-down" size={12} color={COLORS.light} />
+        </TouchableOpacity>
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -308,185 +513,277 @@ export default function AuthScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Back button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                haptics.light();
-                router.back();
-              }}
-            >
-              <Ionicons name="chevron-back" size={24} color={COLORS.cream} />
-            </TouchableOpacity>
-
-            {/* Auth Card */}
+            {/* Logo Section */}
             <Animated.View
               style={[
-                styles.card,
+                styles.logoSection,
                 {
-                  opacity: cardOpacity,
-                  transform: [{ scale: cardScale }],
+                  opacity: logoOpacity,
+                  transform: [{ translateY: logoTranslateY }],
                 },
               ]}
             >
-              {/* Header */}
-              <Text style={styles.logoText}>Maslow</Text>
+              <View style={styles.logoCircle}>
+                <Image
+                  source={require('../../assets/MASLOW_Round_Inverted.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.wordmark}>MASLOW NYC</Text>
               <Text style={styles.tagline}>The Infrastructure of Dignity</Text>
-
-              {/* Tab Switcher */}
-              <View style={styles.tabContainer}>
-                <TouchableOpacity
-                  style={[styles.tab, mode === 'signin' && styles.tabActive]}
-                  onPress={() => switchMode('signin')}
-                >
-                  <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
-                    Sign In
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.tab, mode === 'signup' && styles.tabActive]}
-                  onPress={() => switchMode('signup')}
-                >
-                  <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
-                    Sign Up
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Form */}
-              <View style={styles.form}>
-                {mode === 'signup' && (
-                  <>
-                    {/* Name Row */}
-                    <View style={styles.nameRow}>
-                      <View style={styles.nameField}>
-                        <Text style={styles.label}>First Name</Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder="First name"
-                          placeholderTextColor={COLORS.gray}
-                          value={firstName}
-                          onChangeText={setFirstName}
-                          autoCapitalize="words"
-                          editable={!loading}
-                        />
-                      </View>
-                      <View style={styles.nameField}>
-                        <Text style={styles.label}>Last Name</Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder="Last name"
-                          placeholderTextColor={COLORS.gray}
-                          value={lastName}
-                          onChangeText={setLastName}
-                          autoCapitalize="words"
-                          editable={!loading}
-                        />
-                      </View>
-                    </View>
-                  </>
-                )}
-
-                {/* Email */}
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.label}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="you@example.com"
-                    placeholderTextColor={COLORS.gray}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    editable={!loading}
-                  />
-                </View>
-
-                {mode === 'signup' && (
-                  <>
-                    {/* Phone */}
-                    <View style={styles.fieldContainer}>
-                      <Text style={styles.label}>Phone Number</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="(555) 123-4567"
-                        placeholderTextColor={COLORS.gray}
-                        value={phone}
-                        onChangeText={setPhone}
-                        keyboardType="phone-pad"
-                        editable={!loading}
-                      />
-                      <Text style={styles.hint}>We'll send a verification code to this number</Text>
-                    </View>
-                  </>
-                )}
-
-                {/* Password */}
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.label}>Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={mode === 'signup' ? '' : ''}
-                    placeholderTextColor={COLORS.gray}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    editable={!loading}
-                  />
-                  {mode === 'signup' && (
-                    <Text style={styles.hint}>Minimum 6 characters</Text>
-                  )}
-                  {mode === 'signin' && (
-                    <TouchableOpacity
-                      onPress={handleForgotPassword}
-                      disabled={loading}
-                      style={styles.forgotPasswordButton}
-                    >
-                      <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Submit Button */}
-                <TouchableOpacity
-                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                  onPress={mode === 'signin' ? handleSignIn : handleSignUp}
-                  disabled={loading}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.submitButtonText}>
-                    {loading
-                      ? (mode === 'signin' ? 'Signing In...' : 'Creating Account...')
-                      : (mode === 'signin' ? 'Sign In' : 'Create Account')
-                    }
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </Animated.View>
+
+            {/* Gold Divider */}
+            <Animated.View style={[styles.divider, { opacity: dividerOpacity }]} />
+
+            {/* Frosted Glass Card */}
+            <Animated.View
+              style={[
+                styles.cardWrapper,
+                {
+                  opacity: cardOpacity,
+                  transform: [{ translateY: cardTranslateY }],
+                },
+              ]}
+            >
+              <BlurView intensity={Platform.OS === 'ios' ? 40 : 0} tint="light" style={styles.card}>
+                <View style={styles.cardContent}>
+                  {/* Tab Switcher */}
+                  <View style={styles.tabRow}>
+                    <TouchableOpacity
+                      style={styles.tab}
+                      onPress={() => switchMode('signin')}
+                    >
+                      <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
+                        Sign In
+                      </Text>
+                      {mode === 'signin' && <View style={styles.tabUnderline} />}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.tab}
+                      onPress={() => switchMode('signup')}
+                    >
+                      <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
+                        Sign Up
+                      </Text>
+                      {mode === 'signup' && <View style={styles.tabUnderline} />}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* SIGN IN FORM */}
+                  {mode === 'signin' && (
+                    <View style={styles.form}>
+                      <View style={styles.field}>
+                        <Text style={styles.inputLabel}>EMAIL</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="you@email.com"
+                          placeholderTextColor="rgba(42,34,24,0.22)"
+                          value={email}
+                          onChangeText={setEmail}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                          editable={!loading}
+                        />
+                      </View>
+                      <View style={styles.field}>
+                        <Text style={styles.inputLabel}>PASSWORD</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="••••••••"
+                          placeholderTextColor="rgba(42,34,24,0.22)"
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry
+                          editable={!loading}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                        onPress={handleSignIn}
+                        disabled={loading}
+                      >
+                        <Text style={styles.btnPrimaryText}>
+                          {loading ? 'Signing In...' : 'Enter'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
+                        <Text style={styles.forgotLink}>Forgot password?</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* SIGN UP FLOW */}
+                  {mode === 'signup' && (
+                    <View style={styles.form}>
+                      {/* Step Dots */}
+                      <View style={styles.stepDots}>
+                        <View style={[styles.dot, signupStep === 'credentials' && styles.dotActive]} />
+                        <View style={[styles.dot, signupStep === 'phone' && styles.dotActive]} />
+                        <View style={[styles.dot, signupStep === 'verification' && styles.dotActive]} />
+                      </View>
+
+                      {/* Step 1: Credentials */}
+                      {signupStep === 'credentials' && (
+                        <>
+                          <View style={styles.field}>
+                            <Text style={styles.inputLabel}>FIRST NAME</Text>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="First name"
+                              placeholderTextColor="rgba(42,34,24,0.22)"
+                              value={firstName}
+                              onChangeText={setFirstName}
+                              autoCapitalize="words"
+                              editable={!loading}
+                            />
+                          </View>
+                          <View style={styles.field}>
+                            <Text style={styles.inputLabel}>EMAIL</Text>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="you@email.com"
+                              placeholderTextColor="rgba(42,34,24,0.22)"
+                              value={email}
+                              onChangeText={setEmail}
+                              autoCapitalize="none"
+                              keyboardType="email-address"
+                              editable={!loading}
+                            />
+                          </View>
+                          <View style={styles.field}>
+                            <Text style={styles.inputLabel}>PASSWORD</Text>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="••••••••"
+                              placeholderTextColor="rgba(42,34,24,0.22)"
+                              value={password}
+                              onChangeText={setPassword}
+                              secureTextEntry
+                              editable={!loading}
+                            />
+                          </View>
+                          {nextMemberNumber && (
+                            <Text style={styles.memberTeaser}>
+                              You'll be member{' '}
+                              <Text style={styles.memberNumber}>
+                                #{String(nextMemberNumber).padStart(5, '0')}
+                              </Text>
+                            </Text>
+                          )}
+                          <TouchableOpacity
+                            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                            onPress={handleCredentialsNext}
+                            disabled={loading}
+                          >
+                            <Text style={styles.btnPrimaryText}>Continue</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {/* Step 2: Phone */}
+                      {signupStep === 'phone' && (
+                        <>
+                          <View style={styles.field}>
+                            <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+                            <View style={styles.phoneRow}>
+                              <View style={styles.phoneFlag}>
+                                <Text style={styles.phoneFlagText}>🇺🇸 +1</Text>
+                              </View>
+                              <TextInput
+                                style={[styles.input, styles.phoneInput]}
+                                placeholder="(212) 555-0100"
+                                placeholderTextColor="rgba(42,34,24,0.22)"
+                                value={phone}
+                                onChangeText={setPhone}
+                                keyboardType="phone-pad"
+                                editable={!loading}
+                              />
+                            </View>
+                          </View>
+                          <Text style={styles.note}>
+                            We'll send a one-time code to verify your number.
+                          </Text>
+                          <TouchableOpacity
+                            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                            onPress={handleSendCode}
+                            disabled={loading}
+                          >
+                            <Text style={styles.btnPrimaryText}>
+                              {loading ? 'Sending...' : 'Send Code'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.btnGhost}
+                            onPress={handleSignupBack}
+                            disabled={loading}
+                          >
+                            <Text style={styles.btnGhostText}>← Back</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {/* Step 3: Verification */}
+                      {signupStep === 'verification' && (
+                        <>
+                          <Text style={styles.note}>
+                            Enter the 6-digit code sent to your phone.
+                          </Text>
+                          <View style={styles.codeBoxes}>
+                            {[0, 1, 2, 3, 4, 5].map((index) => (
+                              <TextInput
+                                key={index}
+                                ref={(ref) => { codeInputRefs.current[index] = ref; }}
+                                style={[
+                                  styles.codeBox,
+                                  verificationCode[index] && styles.codeBoxFilled,
+                                ]}
+                                maxLength={1}
+                                keyboardType="number-pad"
+                                value={verificationCode[index]}
+                                onChangeText={(text) => handleCodeChange(index, text)}
+                                onKeyPress={({ nativeEvent }) =>
+                                  handleCodeKeyPress(index, nativeEvent.key)
+                                }
+                              />
+                            ))}
+                          </View>
+                          <TouchableOpacity onPress={handleResendCode} disabled={loading}>
+                            <Text style={styles.resendLink}>
+                              Didn't get it? <Text style={styles.resendLinkBlue}>Resend</Text>
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                            onPress={handleVerifyCode}
+                            disabled={loading}
+                          >
+                            <Text style={styles.btnPrimaryText}>
+                              {loading ? 'Verifying...' : 'Verify & Enter'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.btnGhost}
+                            onPress={handleSignupBack}
+                            disabled={loading}
+                          >
+                            <Text style={styles.btnGhostText}>← Back</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </BlurView>
+            </Animated.View>
+
+            {/* Footer */}
+            <Text style={styles.footerNote}>
+              By continuing you agree to Maslow's{'\n'}Terms of Service & Privacy Policy
+            </Text>
           </ScrollView>
         </KeyboardAvoidingView>
-
-        {/* Language Bubble */}
-        <View style={styles.languageBubble}>
-          <TouchableOpacity
-            style={styles.languageBubbleInner}
-            onPress={() => {
-              haptics.light();
-              setShowLanguageModal(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Animated.View style={{ opacity: fadeAnim }}>
-              <Text style={styles.languageGreeting}>
-                {WELCOME_GREETINGS[rotatingLang.code]}
-              </Text>
-              <Text style={styles.languageName}>
-                {rotatingLang.name.toUpperCase()}
-              </Text>
-            </Animated.View>
-            <Text style={styles.languageHint}>Tap to select language</Text>
-          </TouchableOpacity>
-        </View>
 
         {/* Undo Toast */}
         {showUndoToast && (
@@ -526,7 +823,7 @@ export default function AuthScreen() {
               style={styles.modalCloseButton}
               onPress={() => setShowLanguageModal(false)}
             >
-              <Ionicons name="close" size={24} color={COLORS.gray} />
+              <Ionicons name="close" size={24} color={COLORS.mid} />
             </TouchableOpacity>
           </View>
           <ScrollView
@@ -549,17 +846,19 @@ export default function AuthScreen() {
                   <View style={styles.languageItemLeft}>
                     <Text style={styles.languageItemFlag}>{lang.flag}</Text>
                     <View>
-                      <Text style={[
-                        styles.languageItemNative,
-                        isSelected && styles.languageItemNativeSelected,
-                      ]}>
+                      <Text
+                        style={[
+                          styles.languageItemNative,
+                          isSelected && styles.languageItemNativeSelected,
+                        ]}
+                      >
                         {lang.native}
                       </Text>
                       <Text style={styles.languageItemEnglish}>{lang.name}</Text>
                     </View>
                   </View>
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.blue} />
                   )}
                 </TouchableOpacity>
               );
@@ -574,10 +873,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  gradientBackground: {
-    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.cream,
   },
   safeArea: {
     flex: 1,
@@ -587,171 +883,302 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    padding: 8,
-    zIndex: 10,
+    paddingTop: 48,
+    paddingBottom: 32,
   },
 
-  // Card
-  card: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
+  // Language Pill
+  languagePill: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
+    borderColor: 'rgba(196,159,88,0.2)',
+    gap: 4,
   },
-  logoText: {
-    fontSize: 36,
-    fontWeight: '400',
-    fontStyle: 'italic',
-    color: COLORS.accent,
-    textAlign: 'center',
+  languagePillText: {
+    fontFamily: fonts.ui,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: COLORS.light,
+  },
+
+  // Logo Section
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logoCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    overflow: 'hidden',
+    marginBottom: 18,
+    shadowColor: COLORS.blue,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 32,
+    elevation: 8,
+  },
+  logoImage: {
+    width: 110,
+    height: 110,
+  },
+  wordmark: {
+    fontFamily: fonts.displayLight,
+    fontSize: 11,
+    letterSpacing: 6,
+    color: COLORS.light,
     marginBottom: 8,
   },
   tagline: {
-    fontSize: 14,
-    color: COLORS.grayLight,
-    textAlign: 'center',
-    marginBottom: 28,
-    letterSpacing: 1,
+    fontFamily: fonts.displayItalic,
+    fontSize: 15,
+    color: 'rgba(154,142,128,0.85)',
+    letterSpacing: 0.5,
+  },
+
+  // Divider
+  divider: {
+    width: 1,
+    height: 28,
+    backgroundColor: COLORS.gold,
+    opacity: 0.3,
+    marginVertical: 24,
+  },
+
+  // Card
+  cardWrapper: {
+    width: '100%',
+    maxWidth: 340,
+  },
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  cardContent: {
+    backgroundColor: Platform.OS === 'android' ? COLORS.cardBg : 'transparent',
+    padding: 28,
   },
 
   // Tabs
-  tabContainer: {
+  tabRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.inputBg,
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 28,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(196,159,88,0.18)',
+    marginBottom: 22,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 6,
     alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: COLORS.cardBorder,
+    paddingBottom: 11,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.gray,
+    fontFamily: fonts.ui,
+    fontSize: 10.5,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    color: COLORS.light,
   },
   tabTextActive: {
-    color: COLORS.cream,
+    color: COLORS.text,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: -1,
+    left: '20%',
+    right: '20%',
+    height: 1,
+    backgroundColor: COLORS.gold,
   },
 
   // Form
   form: {
-    gap: 20,
+    gap: 13,
   },
-  fieldContainer: {
-    gap: 8,
+  field: {
+    gap: 5,
   },
-  nameRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  nameField: {
-    flex: 1,
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.cream,
+  inputLabel: {
+    fontFamily: fonts.ui,
+    fontSize: 9,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    color: 'rgba(196,159,88,0.85)',
   },
   input: {
     backgroundColor: COLORS.inputBg,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: COLORS.cream,
-  },
-  hint: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginTop: 4,
-  },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-  },
-  forgotPasswordText: {
-    fontSize: 13,
-    color: COLORS.accent,
-    fontWeight: '500',
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontFamily: fonts.uiLight,
+    fontSize: 14,
+    color: COLORS.text,
   },
 
-  // Submit Button
-  submitButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
+  // Phone row
+  phoneRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  submitButtonDisabled: {
-    backgroundColor: COLORS.accentDark,
+  phoneFlag: {
+    width: 58,
+    backgroundColor: COLORS.inputBg,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  phoneFlagText: {
+    fontFamily: fonts.ui,
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  phoneInput: {
+    flex: 1,
+  },
+
+  // Code boxes
+  codeBoxes: {
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+  },
+  codeBox: {
+    width: 42,
+    height: 46,
+    backgroundColor: COLORS.inputBg,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+    borderRadius: 6,
+    textAlign: 'center',
+    fontFamily: fonts.uiLight,
+    fontSize: 20,
+    color: COLORS.text,
+  },
+  codeBoxFilled: {
+    borderColor: COLORS.inputFocusBorder,
+    backgroundColor: COLORS.white,
+  },
+
+  // Step dots
+  stepDots: {
+    flexDirection: 'row',
+    gap: 5,
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(196,159,88,0.25)',
+  },
+  dotActive: {
+    backgroundColor: COLORS.blue,
+    transform: [{ scale: 1.3 }],
+  },
+
+  // Member teaser
+  memberTeaser: {
+    fontFamily: fonts.displayItalic,
+    fontSize: 13,
+    color: COLORS.light,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  memberNumber: {
+    color: COLORS.blue,
+    fontFamily: fonts.display,
+  },
+
+  // Notes
+  note: {
+    fontFamily: fonts.uiLight,
+    fontSize: 11,
+    color: COLORS.light,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  resendLink: {
+    fontFamily: fonts.uiLight,
+    fontSize: 11,
+    color: COLORS.light,
+    textAlign: 'center',
+  },
+  resendLinkBlue: {
+    color: COLORS.blue,
+  },
+
+  // Buttons
+  btnPrimary: {
+    backgroundColor: COLORS.blue,
+    borderRadius: 6,
+    paddingVertical: 13,
+    alignItems: 'center',
+    shadowColor: COLORS.blue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  btnDisabled: {
     opacity: 0.7,
   },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.cardBackground,
+  btnPrimaryText: {
+    fontFamily: fonts.ui,
+    fontSize: 11,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    color: COLORS.white,
+  },
+  btnGhost: {
+    borderWidth: 1,
+    borderColor: 'rgba(196,159,88,0.22)',
+    borderRadius: 6,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  btnGhostText: {
+    fontFamily: fonts.ui,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: COLORS.light,
   },
 
-  // Language Bubble
-  languageBubble: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-  },
-  languageBubbleInner: {
-    backgroundColor: 'rgba(40, 50, 65, 0.95)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    minWidth: 140,
-  },
-  languageGreeting: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.accent,
+  // Links
+  forgotLink: {
+    fontFamily: fonts.uiLight,
+    fontSize: 11,
+    color: COLORS.blue,
     textAlign: 'center',
-    marginBottom: 4,
+    marginTop: 2,
   },
-  languageName: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: COLORS.gray,
-    letterSpacing: 1.5,
+
+  // Footer
+  footerNote: {
+    fontFamily: fonts.uiLight,
+    fontSize: 9.5,
+    color: COLORS.light,
+    letterSpacing: 0.5,
     textAlign: 'center',
-  },
-  languageHint: {
-    fontSize: 10,
-    color: COLORS.grayLight,
-    textAlign: 'center',
-    marginTop: 8,
+    lineHeight: 18,
+    marginTop: 18,
   },
 
   // Undo Toast
@@ -760,12 +1187,12 @@ const styles = StyleSheet.create({
     bottom: 100,
     left: 24,
     right: 24,
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: COLORS.white,
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
   },
@@ -777,24 +1204,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   undoToastText: {
+    fontFamily: fonts.ui,
     fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.cream,
+    color: COLORS.text,
   },
   undoButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.gold,
     borderRadius: 6,
   },
   undoButtonText: {
+    fontFamily: fonts.ui,
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.cardBackground,
+    color: COLORS.white,
   },
   undoProgressBar: {
     height: 3,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.gold,
   },
 
   // Modal
@@ -809,13 +1237,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: 'rgba(196,159,88,0.15)',
     backgroundColor: COLORS.white,
   },
   modalTitle: {
+    fontFamily: fonts.display,
     fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.background,
+    color: COLORS.text,
   },
   modalCloseButton: {
     padding: 4,
@@ -840,8 +1268,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   languageItemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: `${COLORS.primary}08`,
+    borderColor: COLORS.blue,
+    backgroundColor: `${COLORS.blue}08`,
   },
   languageItemLeft: {
     flexDirection: 'row',
@@ -852,16 +1280,18 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   languageItemNative: {
+    fontFamily: fonts.ui,
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.background,
+    color: COLORS.text,
   },
   languageItemNativeSelected: {
-    color: COLORS.primary,
+    color: COLORS.blue,
   },
   languageItemEnglish: {
+    fontFamily: fonts.uiLight,
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.mid,
     marginTop: 2,
   },
 });

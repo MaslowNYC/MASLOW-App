@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHaptics } from '../hooks/useHaptics';
 
 const COLORS = {
-  blue: '#286ABC',
+  blue: '#286BCD',
   cream: '#FAF4ED',
   white: '#FFFFFF',
 };

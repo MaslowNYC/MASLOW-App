@@ -5,9 +5,9 @@ import Slider from '@react-native-community/slider';
 import { useState, useEffect, useRef } from 'react';
 import * as Haptics from 'expo-haptics';
 
-const BLUE = '#2C5F8D';
+const BLUE = '#286BCD';
 const CREAM = '#F9F2EC';
-const GOLD = '#C5A059';
+const GOLD = '#C49F58';
 const DARK = '#1A202C';
 
 export default function ControlScreen() {
