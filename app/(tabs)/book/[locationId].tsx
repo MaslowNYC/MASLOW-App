@@ -95,18 +95,13 @@ interface UserProfile {
 type BookingStep = 'time' | 'environment' | 'samples' | 'review' | 'success';
 
 interface DurationOption {
+  id: number;
   minutes: number;
   passes: number;
   cash: number;
   samples: number;
+  name: string;
 }
-
-const DURATION_OPTIONS: DurationOption[] = [
-  { minutes: 10, passes: 1, cash: 5, samples: 2 },
-  { minutes: 15, passes: 2, cash: 10, samples: 5 },
-  { minutes: 30, passes: 4, cash: 20, samples: 5 },
-  { minutes: 60, passes: 8, cash: 40, samples: 5 },
-];
 
 interface BookingData {
   suite?: Suite;
@@ -436,6 +431,7 @@ export default function BookingFlowScreen() {
   const [suites, setSuites] = useState<Suite[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [availablePasses, setAvailablePasses] = useState(0);
+  const [durationOptions, setDurationOptions] = useState<DurationOption[]>([]);
 
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<'passes' | 'cash'>('passes');
@@ -455,7 +451,9 @@ export default function BookingFlowScreen() {
 
   // Auto-trim samples when duration changes (closes pricing loophole)
   useEffect(() => {
-    const maxSamples = bookingData.duration === 10 ? 2 : 5;
+    // Read sample limit from DB-driven durationOptions instead of hardcoded value
+    const selectedOption = durationOptions.find(o => o.minutes === bookingData.duration);
+    const maxSamples = selectedOption?.samples ?? 5; // default to 5 if not yet loaded
     const currentSamples = bookingData.preferences.samples;
 
     // If user has more samples than allowed for current duration, trim to max
@@ -470,10 +468,10 @@ export default function BookingFlowScreen() {
 
       Alert.alert(
         'Samples Adjusted',
-        `${bookingData.duration}-minute visits include ${maxSamples} samples. We've adjusted your selection.`
+        `${selectedOption?.name ?? bookingData.duration + '-minute'} visits include ${maxSamples} samples. We've adjusted your selection.`
       );
     }
-  }, [bookingData.duration]);
+  }, [bookingData.duration, durationOptions]);
 
   // Time selection state
   const [selectedTimeWindow, setSelectedTimeWindow] = useState<'morning' | 'afternoon' | 'evening' | 'lateNight' | null>(null);
@@ -535,6 +533,31 @@ export default function BookingFlowScreen() {
         .gte('expires_at', new Date().toISOString());
 
       const totalPasses = passesData?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+      // Load session types from database
+      const { data: sessionTypesData } = await supabase
+        .from('session_types')
+        .select('id, name, duration_minutes, pass_cost, cash_price, sample_limit')
+        .eq('is_active', true)
+        .order('sort_order') as { data: Array<{
+          id: number;
+          name: string;
+          duration_minutes: number;
+          pass_cost: number;
+          cash_price: string;
+          sample_limit: number;
+        }> | null };
+
+      setDurationOptions(
+        (sessionTypesData || []).map(st => ({
+          id: st.id,
+          name: st.name,
+          minutes: st.duration_minutes,
+          passes: st.pass_cost,
+          cash: parseFloat(st.cash_price),
+          samples: st.sample_limit,
+        }))
+      );
 
       setLocation(locationData);
       setSuites(suitesData || []);
@@ -623,7 +646,7 @@ export default function BookingFlowScreen() {
       const endTime = new Date(startTime.getTime() + bookingData.duration * 60000);
 
       // Calculate amount based on duration (in cents)
-      const durationOption = DURATION_OPTIONS.find(opt => opt.minutes === bookingData.duration);
+      const durationOption = durationOptions.find(opt => opt.minutes === bookingData.duration);
       const amountCents = (durationOption?.cash || 5) * 100;
 
       // 2. Create payment intent via API
@@ -636,7 +659,7 @@ export default function BookingFlowScreen() {
           },
           body: JSON.stringify({
             amount: amountCents,
-            session_type: 'core',
+            session_type: durationOptions.find(o => o.minutes === bookingData.duration)?.name?.toLowerCase().replace(' ', '_') || 'standard',
             user_id: user.id,
             location_id: locationId,
             suite_id: bookingData.suite.id,
@@ -832,7 +855,7 @@ export default function BookingFlowScreen() {
                 )}
               </View>
               <View style={styles.durationGrid}>
-                {DURATION_OPTIONS.map((option) => {
+                {durationOptions.map((option) => {
                   const isSelected = bookingData.duration === option.minutes;
                   const canAfford = paymentMethod === 'cash' || availablePasses >= option.passes;
 
