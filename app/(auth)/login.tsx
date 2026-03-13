@@ -20,7 +20,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../../lib/supabase';
+import { signInWithApple, signInWithGoogle, isAppleAuthAvailable } from '../../lib/socialAuth';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { useMaslowFonts, fonts } from '../../src/hooks/useMaslowFonts';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '../../src/i18n';
@@ -28,24 +30,26 @@ import { useLanguage } from '../../src/context/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Brand colors for auth screen
+// Brand colors for auth screen (redesign March 2026)
 const COLORS = {
-  blue: '#286BCD',
+  charcoal: '#2A2724',
   gold: '#C49F58',
   cream: '#FAF4ED',
-  text: '#2a2218',
+  text: '#2A2724',
   mid: '#9a8e80',
   light: '#b8ad9e',
   white: '#FFFFFF',
   error: '#ef4444',
-  // Gradient
+  success: '#22c55e',
+  blue: '#C49F58', // Using gold for active states to match theme
+  // Gradient (keep warm)
   gradientStart: '#fdf8f0',
   gradientMid: '#f5ede0',
   gradientEnd: '#ede4d4',
   // Inputs
   inputBg: 'rgba(255,255,255,0.72)',
   inputBorder: 'rgba(196,159,88,0.2)',
-  inputFocusBorder: 'rgba(40,107,205,0.35)',
+  inputFocusBorder: 'rgba(196,159,88,0.5)',
   // Card
   cardBg: 'rgba(255,255,255,0.52)',
   cardBorder: 'rgba(255,255,255,0.75)',
@@ -85,6 +89,9 @@ export default function AuthScreen() {
   // Language state
   const { language: currentLanguage, changeLanguage, revertLanguage } = useLanguage();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+  // Social auth state
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
 
   // Undo toast state
   const [showUndoToast, setShowUndoToast] = useState(false);
@@ -145,6 +152,11 @@ export default function AuthScreen() {
       }
     };
     fetchNextMemberNumber();
+  }, []);
+
+  // Check Apple auth availability
+  useEffect(() => {
+    isAppleAuthAvailable().then(setAppleAuthAvailable);
   }, []);
 
   // Reset signup step when switching modes
@@ -254,6 +266,41 @@ export default function AuthScreen() {
         'If an account exists with this email, you will receive a password reset link shortly.',
         [{ text: 'OK' }]
       );
+    }
+  };
+
+  // ===================
+  // SOCIAL SIGN IN
+  // ===================
+
+  const handleAppleSignIn = async () => {
+    haptics.medium();
+    setLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (!result) {
+        // User cancelled
+        setLoading(false);
+        return;
+      }
+      haptics.success();
+    } catch (error: any) {
+      haptics.warning();
+      Alert.alert('Sign In Failed', error.message || 'Apple sign-in failed');
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    haptics.medium();
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      // Google OAuth will redirect, loading state will be cleared on return
+    } catch (error: any) {
+      haptics.warning();
+      Alert.alert('Sign In Failed', error.message || 'Google sign-in failed');
+      setLoading(false);
     }
   };
 
@@ -611,6 +658,34 @@ export default function AuthScreen() {
                       <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
                         <Text style={styles.forgotLink}>Forgot password?</Text>
                       </TouchableOpacity>
+
+                      {/* Social Sign In Divider */}
+                      <View style={styles.socialDivider}>
+                        <View style={styles.socialDividerLine} />
+                        <Text style={styles.socialDividerText}>or continue with</Text>
+                        <View style={styles.socialDividerLine} />
+                      </View>
+
+                      {/* Social Sign In Buttons */}
+                      <View style={styles.socialButtons}>
+                        {Platform.OS === 'ios' && appleAuthAvailable && (
+                          <AppleAuthentication.AppleAuthenticationButton
+                            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                            cornerRadius={2}
+                            style={styles.appleButton}
+                            onPress={handleAppleSignIn}
+                          />
+                        )}
+                        <TouchableOpacity
+                          style={styles.googleButton}
+                          onPress={handleGoogleSignIn}
+                          disabled={loading}
+                        >
+                          <Ionicons name="logo-google" size={18} color={COLORS.text} />
+                          <Text style={styles.googleButtonText}>Google</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
 
@@ -962,7 +1037,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: 2,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
@@ -1021,7 +1096,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.inputBg,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 6,
+    borderRadius: 2,
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontFamily: fonts.uiLight,
@@ -1039,7 +1114,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.inputBg,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 6,
+    borderRadius: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1064,7 +1139,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.inputBg,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 6,
+    borderRadius: 2,
     textAlign: 'center',
     fontFamily: fonts.uiLight,
     fontSize: 20,
@@ -1089,7 +1164,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(196,159,88,0.25)',
   },
   dotActive: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.gold,
     transform: [{ scale: 1.3 }],
   },
 
@@ -1102,7 +1177,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   memberNumber: {
-    color: COLORS.blue,
+    color: COLORS.gold,
     fontFamily: fonts.display,
   },
 
@@ -1121,19 +1196,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   resendLinkBlue: {
-    color: COLORS.blue,
+    color: COLORS.gold,
   },
 
-  // Buttons
+  // Buttons - charcoal primary per redesign
   btnPrimary: {
-    backgroundColor: COLORS.blue,
-    borderRadius: 6,
-    paddingVertical: 13,
+    backgroundColor: COLORS.charcoal,
+    borderRadius: 2,
+    paddingVertical: 14,
     alignItems: 'center',
-    shadowColor: COLORS.blue,
+    shadowColor: COLORS.charcoal,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 4,
   },
   btnDisabled: {
@@ -1144,12 +1219,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 2.5,
     textTransform: 'uppercase',
-    color: COLORS.white,
+    color: COLORS.cream,
   },
   btnGhost: {
     borderWidth: 1,
     borderColor: 'rgba(196,159,88,0.22)',
-    borderRadius: 6,
+    borderRadius: 2,
     paddingVertical: 11,
     alignItems: 'center',
   },
@@ -1165,9 +1240,53 @@ const styles = StyleSheet.create({
   forgotLink: {
     fontFamily: fonts.uiLight,
     fontSize: 11,
-    color: COLORS.blue,
+    color: COLORS.gold,
     textAlign: 'center',
     marginTop: 2,
+  },
+
+  // Social Sign In
+  socialDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  socialDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(196,159,88,0.2)',
+  },
+  socialDividerText: {
+    fontFamily: fonts.uiLight,
+    fontSize: 10,
+    color: COLORS.light,
+    paddingHorizontal: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  socialButtons: {
+    gap: 10,
+  },
+  appleButton: {
+    width: '100%',
+    height: 44,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: 'rgba(196,159,88,0.25)',
+    borderRadius: 2,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  googleButtonText: {
+    fontFamily: fonts.ui,
+    fontSize: 14,
+    color: COLORS.text,
   },
 
   // Footer

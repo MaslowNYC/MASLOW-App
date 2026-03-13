@@ -4,6 +4,8 @@ import { View, StyleSheet } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import * as Linking from 'expo-linking';
+import { useFonts, CormorantGaramond_400Regular, CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
+import { Jost_400Regular, Jost_600SemiBold } from '@expo-google-fonts/jost';
 import { supabase, getSafeSession, clearAuthState } from '../lib/supabase';
 import SplashScreen from '../src/components/SplashScreen';
 import { ConciergeBubble, AccessibilityQuestionnaire, PreferencesModal } from '../src/components';
@@ -13,6 +15,13 @@ import { LanguageProvider } from '../src/context/LanguageContext';
 import { initializeLanguage } from '../src/i18n';
 
 function RootLayoutContent() {
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_400Regular,
+    CormorantGaramond_300Light,
+    Jost_400Regular,
+    Jost_600SemiBold,
+  });
+
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
@@ -170,6 +179,9 @@ function RootLayoutContent() {
     setShowPreferencesModal(false);
   };
 
+  // Wait for fonts to load before rendering
+  if (!fontsLoaded) return null;
+
   // Render homepage underneath splash for smooth crossfade
   return (
     <LanguageProvider userId={session?.user.id ?? null}>
@@ -220,6 +232,8 @@ export default function RootLayout() {
   return (
     <StripeProvider
       publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
+      merchantIdentifier="merchant.nyc.maslow"
+      urlScheme="maslow"
     >
       <RootLayoutContent />
     </StripeProvider>
