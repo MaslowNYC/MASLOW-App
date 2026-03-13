@@ -7,7 +7,8 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors, spacing, shadows } from '../theme';
+import { colors, fonts, shape } from '../theme/colors';
+import { spacing, shadows } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 
 interface MaslowButtonProps {
@@ -70,7 +71,7 @@ export const MaslowButton: React.FC<MaslowButtonProps> = ({
     <TouchableOpacity
       onPress={handlePress}
       disabled={disabled || loading}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       accessible={true}
       accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
       accessibilityRole="button"
@@ -85,7 +86,7 @@ export const MaslowButton: React.FC<MaslowButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'ghost' ? colors.navy : colors.white}
+          color={variant === 'ghost' ? colors.charcoal : colors.cream}
         />
       ) : (
         <Text style={[
@@ -103,15 +104,15 @@ export const MaslowButton: React.FC<MaslowButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 12,
+    borderRadius: shape.borderRadius,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
 
-  // Variants - Navy is primary (per brand guidelines)
+  // Variants - Charcoal is primary (per redesign brief)
   primary: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
     ...shadows.md,
   },
   secondary: {
@@ -120,8 +121,8 @@ const styles = StyleSheet.create({
   },
   ghost: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.navy,
+    borderWidth: 1.5,
+    borderColor: colors.charcoal,
   },
 
   // Sizes (using 8px grid)
@@ -141,32 +142,33 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
 
-  // Text base
+  // Text base - Jost uppercase
   text: {
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontFamily: fonts.sansSemiBold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 
   // Text variants
   primaryText: {
-    color: colors.white,
+    color: colors.cream,
   },
   secondaryText: {
-    color: colors.white,
+    color: colors.charcoal,
   },
   ghostText: {
-    color: colors.navy,
+    color: colors.charcoal,
   },
 
   // Text sizes
   smText: {
-    fontSize: 14,
+    fontSize: 12,
   },
   mdText: {
-    fontSize: 16,
+    fontSize: 14,
   },
   lgText: {
-    fontSize: 16,
+    fontSize: 14,
   },
 
   disabled: {

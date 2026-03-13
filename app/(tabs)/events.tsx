@@ -13,7 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { colors, spacing } from '../../src/theme';
+import { colors } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
@@ -44,7 +45,7 @@ interface Event {
 // RSVP status values: 'going', 'waitlisted', 'cancelled'
 
 const CATEGORIES: { key: EventCategory | 'all' | 'my-events'; label: string; color: string }[] = [
-  { key: 'all', label: 'All', color: colors.navy },
+  { key: 'all', label: 'All', color: colors.charcoal },
   { key: 'my-events', label: 'My Events', color: '#10B981' },
   { key: 'cultural', label: 'Cultural', color: '#8B5CF6' },
   { key: 'childrens', label: "Children's", color: '#F59E0B' },
@@ -351,18 +352,18 @@ export default function EventsScreen() {
           {/* Event details */}
           <View style={styles.eventDetails}>
             <View style={styles.eventDetailRow}>
-              <Ionicons name="calendar-outline" size={16} color={colors.darkGray} />
+              <Ionicons name="calendar-outline" size={16} color={colors.charcoal50} />
               <Text style={styles.eventDetailText}>{date} at {time}</Text>
             </View>
             {event.location && (
               <View style={styles.eventDetailRow}>
-                <Ionicons name="location-outline" size={16} color={colors.darkGray} />
+                <Ionicons name="location-outline" size={16} color={colors.charcoal50} />
                 <Text style={styles.eventDetailText}>{event.location}</Text>
               </View>
             )}
             {event.host_name && (
               <View style={styles.eventDetailRow}>
-                <Ionicons name="person-outline" size={16} color={colors.darkGray} />
+                <Ionicons name="person-outline" size={16} color={colors.charcoal50} />
                 <Text style={styles.eventDetailText}>{i18n.t('hostedBy')} {event.host_name}</Text>
               </View>
             )}
@@ -372,7 +373,7 @@ export default function EventsScreen() {
           <View style={styles.eventFooter}>
             <View style={styles.footerLeft}>
               <View style={styles.attendeesRow}>
-                <Ionicons name="people" size={16} color={colors.darkGray} />
+                <Ionicons name="people" size={16} color={colors.charcoal50} />
                 <Text style={styles.attendeesText}>
                   {event.current_attendees}
                   {event.max_attendees ? `/${event.max_attendees}` : ''} {i18n.t('attending')}
@@ -396,13 +397,13 @@ export default function EventsScreen() {
               disabled={rsvpLoading === event.id}
             >
               {rsvpLoading === event.id ? (
-                <ActivityIndicator size="small" color={isRSVPd ? colors.cream : colors.navy} />
+                <ActivityIndicator size="small" color={isRSVPd ? colors.cream : colors.charcoal} />
               ) : (
                 <>
                   <Ionicons
                     name={isRSVPd ? 'checkmark-circle' : 'add-circle-outline'}
                     size={18}
-                    color={isRSVPd ? colors.cream : colors.navy}
+                    color={isRSVPd ? colors.cream : colors.charcoal}
                   />
                   <Text style={[
                     styles.rsvpButtonText,
@@ -441,7 +442,7 @@ export default function EventsScreen() {
               style={styles.closeButton}
               onPress={() => setSelectedEvent(null)}
             >
-              <Ionicons name="close" size={24} color={colors.navy} />
+              <Ionicons name="close" size={24} color={colors.charcoal} />
             </TouchableOpacity>
             <View style={[styles.modalCategoryBadge, { backgroundColor: `${categoryColor}15` }]}>
               <Ionicons
@@ -537,7 +538,7 @@ export default function EventsScreen() {
                   style={styles.calendarButton}
                   onPress={() => handleAddToCalendar(selectedEvent)}
                 >
-                  <Ionicons name="calendar-outline" size={20} color={colors.navy} />
+                  <Ionicons name="calendar-outline" size={20} color={colors.charcoal} />
                   <Text style={styles.calendarButtonText}>{i18n.t('addToCalendar')}</Text>
                 </TouchableOpacity>
               )}
@@ -633,7 +634,7 @@ export default function EventsScreen() {
             if (displayEvents.length === 0) {
               return (
                 <MaslowCard style={styles.emptyCard} padding="xl">
-                  <Ionicons name="calendar-outline" size={48} color={colors.darkGray} />
+                  <Ionicons name="calendar-outline" size={48} color={colors.charcoal50} />
                   <Text style={styles.emptyTitle}>
                     {selectedCategory === 'my-events' ? i18n.t('noRsvpsYet') : i18n.t('noEventsFound')}
                   </Text>
@@ -689,18 +690,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: 2,
     textAlign: 'center',
   },
   filterSection: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
     paddingBottom: spacing.sm,
   },
   filtersContainer: {
@@ -713,7 +714,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   filterChipText: {
     fontSize: 13,
@@ -730,7 +731,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   eventsContainer: {
     padding: spacing.lg,
@@ -738,7 +739,7 @@ const styles = StyleSheet.create({
   },
   resultsCount: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.md,
   },
   emptyCard: {
@@ -747,12 +748,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.md,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: spacing.xs,
     textAlign: 'center',
   },
@@ -766,7 +767,7 @@ const styles = StyleSheet.create({
   clearFilterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   eventCard: {
     marginBottom: spacing.md,
@@ -809,7 +810,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
   },
   eventDetails: {
@@ -823,7 +824,7 @@ const styles = StyleSheet.create({
   },
   eventDetailText: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   eventFooter: {
     flexDirection: 'row',
@@ -831,7 +832,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
   },
   footerLeft: {
     flex: 1,
@@ -843,7 +844,7 @@ const styles = StyleSheet.create({
   },
   attendeesText: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     fontWeight: '500',
   },
   priceText: {
@@ -860,21 +861,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
     backgroundColor: 'transparent',
   },
   rsvpButtonActive: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.charcoal,
+    borderColor: colors.charcoal,
   },
   rsvpButtonDisabled: {
-    backgroundColor: colors.lightGray,
-    borderColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
+    borderColor: colors.charcoal10,
   },
   rsvpButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   rsvpButtonTextActive: {
     color: colors.cream,
@@ -891,7 +892,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   closeButton: {
     width: 40,
@@ -922,7 +923,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.lg,
   },
   modalDetails: {
@@ -936,13 +937,13 @@ const styles = StyleSheet.create({
   },
   modalDetailLabel: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   modalDetailValue: {
     fontSize: 16,
-    color: colors.navy,
+    color: colors.charcoal,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -952,12 +953,12 @@ const styles = StyleSheet.create({
   descriptionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
   },
   descriptionText: {
     fontSize: 15,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     lineHeight: 22,
   },
   tagsSection: {
@@ -966,7 +967,7 @@ const styles = StyleSheet.create({
   tagsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
   },
   tagsContainer: {
@@ -980,17 +981,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   tagText: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   modalFooter: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
     backgroundColor: colors.white,
   },
   modalButtonsRow: {
@@ -1006,17 +1007,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
     backgroundColor: 'transparent',
   },
   calendarButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   modalRsvpButton: {
     flex: 1,
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
@@ -1028,7 +1029,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
   modalRsvpButtonDisabled: {
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
   },
   modalRsvpButtonText: {
     fontSize: 16,

@@ -15,7 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../../src/theme';
+import { colors } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowButton } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
@@ -265,7 +266,7 @@ export default function TransferCreditsScreen() {
               }}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={24} color={colors.navy} />
+              <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Transfer Credits</Text>
             <View style={styles.headerSpacer} />
@@ -275,7 +276,7 @@ export default function TransferCreditsScreen() {
           <View style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>Your Balance</Text>
             {loadingBalance ? (
-              <ActivityIndicator size="small" color={colors.navy} />
+              <ActivityIndicator size="small" color={colors.charcoal} />
             ) : (
               <Text style={styles.balanceAmount}>
                 {userBalance} <Text style={styles.balanceUnit}>credits</Text>
@@ -289,11 +290,11 @@ export default function TransferCreditsScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>SEND TO</Text>
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color={colors.darkGray} style={styles.inputIcon} />
+                <Ionicons name="person-outline" size={20} color={colors.charcoal50} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email or Member Number (e.g. #00042)"
-                  placeholderTextColor={colors.lightGray}
+                  placeholderTextColor={colors.charcoal10}
                   value={recipientInput}
                   onChangeText={setRecipientInput}
                   autoCapitalize="none"
@@ -307,11 +308,11 @@ export default function TransferCreditsScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>AMOUNT</Text>
               <View style={styles.inputContainer}>
-                <Ionicons name="wallet-outline" size={20} color={colors.darkGray} style={styles.inputIcon} />
+                <Ionicons name="wallet-outline" size={20} color={colors.charcoal50} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Number of credits"
-                  placeholderTextColor={colors.lightGray}
+                  placeholderTextColor={colors.charcoal10}
                   value={amount}
                   onChangeText={handleAmountChange}
                   keyboardType="number-pad"
@@ -332,7 +333,7 @@ export default function TransferCreditsScreen() {
                 <TextInput
                   style={[styles.input, styles.messageInput]}
                   placeholder="Add a note..."
-                  placeholderTextColor={colors.lightGray}
+                  placeholderTextColor={colors.charcoal10}
                   value={message}
                   onChangeText={setMessage}
                   multiline
@@ -363,7 +364,7 @@ export default function TransferCreditsScreen() {
 
           {/* Security Note */}
           <View style={styles.securityNote}>
-            <Ionicons name="shield-checkmark-outline" size={16} color={colors.darkGray} />
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.charcoal50} />
             <Text style={styles.securityText}>
               Transfers are instant and cannot be reversed. Please verify the recipient before confirming.
             </Text>
@@ -404,7 +405,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   headerSpacer: {
     width: 40,
@@ -425,19 +426,19 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     fontWeight: '500',
     marginBottom: spacing.sm,
   },
   balanceAmount: {
     fontSize: 36,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   balanceUnit: {
     fontSize: 18,
     fontWeight: '500',
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
 
   // Form
@@ -450,7 +451,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     letterSpacing: 0.5,
     marginBottom: spacing.sm,
   },
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: colors.navy,
+    color: colors.charcoal,
     paddingVertical: 16,
   },
   messageContainer: {
@@ -483,7 +484,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: colors.lightGray,
+    color: colors.charcoal10,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
   securityNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: `${colors.navy}08`,
+    backgroundColor: `${colors.charcoal}08`,
     padding: spacing.md,
     borderRadius: 12,
     gap: spacing.sm,
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
   securityText: {
     flex: 1,
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     lineHeight: 18,
   },
 });

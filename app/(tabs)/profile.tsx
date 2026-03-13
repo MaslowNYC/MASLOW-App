@@ -46,7 +46,8 @@ const formatTierDisplay = (tier: string | null): string => {
   return i18n.t('member');
 };
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, spacing } from '../../src/theme';
+import { colors, fonts, shape } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import i18n from '../../src/i18n';
@@ -108,14 +109,14 @@ const MenuItem: React.FC<MenuItemProps> = ({
         <Ionicons
           name={icon}
           size={20}
-          color={danger ? colors.error : colors.navy}
+          color={danger ? colors.error : colors.charcoal}
         />
         <Text style={[styles.menuItemLabel, danger && styles.menuItemDanger]}>
           {label}
         </Text>
       </View>
       {showChevron && (
-        <Ionicons name="chevron-forward" size={18} color={colors.darkGray} />
+        <Ionicons name="chevron-forward" size={18} color={colors.charcoal30} />
       )}
     </TouchableOpacity>
   );
@@ -450,7 +451,7 @@ export default function AccountScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.navy}
+            tintColor={colors.gold}
           />
         }
       >
@@ -463,7 +464,7 @@ export default function AccountScreen() {
         <MaslowCard style={styles.profileCard} padding="lg">
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.navy} />
+              <ActivityIndicator size="large" color={colors.gold} />
             </View>
           ) : (
             <>
@@ -475,7 +476,7 @@ export default function AccountScreen() {
               >
                 {uploadingPhoto ? (
                   <View style={styles.avatarPlaceholder}>
-                    <ActivityIndicator size="small" color={colors.navy} />
+                    <ActivityIndicator size="small" color={colors.gold} />
                   </View>
                 ) : profile.photo_url ? (
                   <Image
@@ -526,7 +527,7 @@ export default function AccountScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name="add-circle" size={20} color={colors.navy} />
+            <Ionicons name="add-circle" size={20} color={colors.charcoal} />
             <Text style={styles.buyCreditsButtonText}>{i18n.t('buyCredits')}</Text>
           </TouchableOpacity>
         </View>
@@ -637,24 +638,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
   },
   scrollContent: {
-    paddingHorizontal: spacing.md, // 16px (was 24px)
-    paddingBottom: 24, // was 32px
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   header: {
     paddingVertical: spacing.sm,
-    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    color: colors.navy,
-    textAlign: 'center',
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
   },
 
   // Profile Card
   profileCard: {
     alignItems: 'center',
-    marginBottom: spacing.sm, // 8px (was 24px) - tighter spacing between cards
+    marginBottom: spacing.sm,
   },
   loadingContainer: {
     paddingVertical: spacing.xl,
@@ -663,21 +663,21 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginBottom: spacing.sm, // 8px (was 16px)
+    marginBottom: spacing.sm,
   },
   avatarPlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: `${colors.navy}15`,
+    backgroundColor: colors.charcoal15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm, // 8px (was 16px)
+    marginBottom: spacing.sm,
   },
   avatarInitials: {
     fontSize: 28,
-    fontWeight: '700',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -694,60 +694,58 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 22,
-    fontWeight: '700',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
     marginBottom: spacing.xs,
   },
   userEmail: {
     fontSize: 14,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
     marginBottom: spacing.xs,
   },
   memberNumber: {
     fontSize: 13,
-    color: '#6B7280',
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal30,
     marginBottom: spacing.xs,
   },
   memberSince: {
     fontSize: 13,
-    color: '#6B7280',
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal30,
   },
 
   // Credit Wallet Card
   walletCard: {
-    backgroundColor: colors.navy,
-    borderRadius: 16,
-    padding: spacing.md, // 16px (was 24px)
-    marginBottom: spacing.sm, // 8px (was 24px) - tighter spacing between cards
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 5,
+    backgroundColor: colors.charcoal,
+    borderRadius: shape.borderRadius,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
   walletHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm, // 8px (was 16px)
+    marginBottom: spacing.sm,
   },
   walletIconContainer: {
-    width: 44, // slightly smaller (was 48)
+    width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: `${colors.gold}20`,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm, // 8px (was 16px)
+    marginRight: spacing.sm,
   },
   walletInfo: {
     flex: 1,
   },
   walletLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: `${colors.white}80`,
+    fontSize: 11,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.gold,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2,
   },
   walletBalanceRow: {
     flexDirection: 'row',
@@ -755,41 +753,42 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   walletBalance: {
-    fontSize: 32, // 32px (was 36px) - slightly more compact
-    fontWeight: '700',
-    color: colors.gold,
+    fontSize: 32,
+    fontFamily: fonts.serifLight,
+    color: colors.cream,
   },
   walletCreditsLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.gold,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.cream,
   },
   buyCreditsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gold,
-    paddingVertical: 10, // 10px (was 16px) - more compact button
-    borderRadius: 12,
+    backgroundColor: colors.cream,
+    paddingVertical: 12,
+    borderRadius: shape.borderRadius,
   },
   buyCreditsButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.navy,
+    fontSize: 14,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.charcoal,
+    letterSpacing: 1,
   },
 
   // Sections
   section: {
-    marginBottom: spacing.sm, // 8px (was 24px) - tighter spacing between sections
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.darkGray,
+    fontSize: 11,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.gold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.xs, // 4px (was 8px)
+    letterSpacing: 3,
+    marginBottom: spacing.xs,
     marginLeft: spacing.xs,
   },
 
@@ -798,7 +797,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm, // 8px (was 16px) - tighter menu items
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   menuItemLeft: {
@@ -807,7 +806,8 @@ const styles = StyleSheet.create({
   },
   menuItemLabel: {
     fontSize: 16,
-    color: colors.navy,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal,
     marginLeft: spacing.md,
   },
   menuItemDanger: {
@@ -815,26 +815,28 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     marginHorizontal: spacing.md,
   },
 
   // Settings Link
   settingsLinkContainer: {
     alignItems: 'center',
-    paddingVertical: 12, // specific 12px (was 16px)
-    marginTop: spacing.sm, // 8px gap before settings
+    paddingVertical: 12,
+    marginTop: spacing.sm,
   },
   settingsLink: {
     fontSize: 14,
-    color: '#6B7280',
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
   },
 
   // Version
   version: {
     fontSize: 12,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal30,
     textAlign: 'center',
-    marginTop: 4, // minimal gap (was 4px)
+    marginTop: 4,
   },
 });

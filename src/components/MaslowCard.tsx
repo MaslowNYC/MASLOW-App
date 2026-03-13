@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors, shadows, spacing } from '../theme';
+import { colors, shape, shadows as themeShadows } from '../theme/colors';
+import { shadows, spacing } from '../theme';
 
 interface MaslowCardProps {
   children: React.ReactNode;
@@ -30,12 +31,12 @@ export const MaslowCard: React.FC<MaslowCardProps> = ({
 const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: shape.borderRadius,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal15,
   },
   elevated: {
-    ...shadows.card,
+    ...themeShadows.card,
   },
   flat: {
     shadowOpacity: 0,

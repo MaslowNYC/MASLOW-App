@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { colors, spacing } from '../../src/theme';
+import { colors, fonts, shape } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import i18n, { SUPPORTED_LANGUAGES, LanguageCode, setLanguage, saveLanguagePreference, loadLanguagePreference } from '../../src/i18n';
@@ -49,14 +50,14 @@ const MenuItem: React.FC<MenuItemProps> = ({
         <Ionicons
           name={icon}
           size={20}
-          color={danger ? colors.error : colors.darkGray}
+          color={danger ? colors.error : colors.charcoal}
         />
         <Text style={[styles.menuItemLabel, danger && styles.menuItemDanger]}>
           {label}
         </Text>
       </View>
       {showChevron && (
-        <Ionicons name="chevron-forward" size={18} color={colors.darkGray} />
+        <Ionicons name="chevron-forward" size={18} color={colors.charcoal30} />
       )}
     </TouchableOpacity>
   );
@@ -165,7 +166,7 @@ export default function SettingsScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.navy} />
+          <Ionicons name="chevron-back" size={24} color={colors.charcoal} />
           <Text style={styles.backText}>{i18n.t('cancel')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{i18n.t('settings')}</Text>
@@ -204,14 +205,14 @@ export default function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
-                <Ionicons name="language-outline" size={20} color={colors.darkGray} />
+                <Ionicons name="language-outline" size={20} color={colors.charcoal} />
                 <Text style={styles.menuItemLabel}>{i18n.t('language')}</Text>
               </View>
               <View style={styles.languageValue}>
                 <Text style={styles.languageText}>
                   {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage)?.native || 'English'}
                 </Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.darkGray} />
+                <Ionicons name="chevron-forward" size={18} color={colors.charcoal30} />
               </View>
             </TouchableOpacity>
             <View style={styles.menuDivider} />
@@ -229,7 +230,7 @@ export default function SettingsScreen() {
           <MaslowCard padding="sm">
             <View style={styles.accessibilityItem}>
               <View style={styles.accessibilityLeft}>
-                <Ionicons name="sparkles-outline" size={20} color={colors.darkGray} />
+                <Ionicons name="sparkles-outline" size={20} color={colors.charcoal} />
                 <View style={styles.accessibilityText}>
                   <Text style={styles.menuItemLabel}>{i18n.t('reduceAnimations')}</Text>
                   <Text style={styles.accessibilityDesc}>{i18n.t('reduceAnimationsDesc')}</Text>
@@ -238,14 +239,14 @@ export default function SettingsScreen() {
               <Switch
                 value={accessibilitySettings.reduce_animations}
                 onValueChange={(v) => updateAccessibilitySetting('reduce_animations', v)}
-                trackColor={{ false: colors.lightGray, true: colors.navy }}
+                trackColor={{ false: colors.charcoal15, true: colors.charcoal }}
                 thumbColor={colors.white}
               />
             </View>
             <View style={styles.menuDivider} />
             <View style={styles.accessibilityItem}>
               <View style={styles.accessibilityLeft}>
-                <Ionicons name="phone-portrait-outline" size={20} color={colors.darkGray} />
+                <Ionicons name="phone-portrait-outline" size={20} color={colors.charcoal} />
                 <View style={styles.accessibilityText}>
                   <Text style={styles.menuItemLabel}>{i18n.t('noHaptics')}</Text>
                   <Text style={styles.accessibilityDesc}>{i18n.t('noHapticsDesc')}</Text>
@@ -254,14 +255,14 @@ export default function SettingsScreen() {
               <Switch
                 value={accessibilitySettings.no_haptics}
                 onValueChange={(v) => updateAccessibilitySetting('no_haptics', v)}
-                trackColor={{ false: colors.lightGray, true: colors.navy }}
+                trackColor={{ false: colors.charcoal15, true: colors.charcoal }}
                 thumbColor={colors.white}
               />
             </View>
             <View style={styles.menuDivider} />
             <View style={styles.accessibilityItem}>
               <View style={styles.accessibilityLeft}>
-                <Ionicons name="contrast-outline" size={20} color={colors.darkGray} />
+                <Ionicons name="contrast-outline" size={20} color={colors.charcoal} />
                 <View style={styles.accessibilityText}>
                   <Text style={styles.menuItemLabel}>{i18n.t('highContrast')}</Text>
                   <Text style={styles.accessibilityDesc}>{i18n.t('highContrastDesc')}</Text>
@@ -270,14 +271,14 @@ export default function SettingsScreen() {
               <Switch
                 value={accessibilitySettings.high_contrast}
                 onValueChange={(v) => updateAccessibilitySetting('high_contrast', v)}
-                trackColor={{ false: colors.lightGray, true: colors.navy }}
+                trackColor={{ false: colors.charcoal15, true: colors.charcoal }}
                 thumbColor={colors.white}
               />
             </View>
             <View style={styles.menuDivider} />
             <View style={styles.accessibilityItem}>
               <View style={styles.accessibilityLeft}>
-                <Ionicons name="text-outline" size={20} color={colors.darkGray} />
+                <Ionicons name="text-outline" size={20} color={colors.charcoal} />
                 <View style={styles.accessibilityText}>
                   <Text style={styles.menuItemLabel}>{i18n.t('largerText')}</Text>
                   <Text style={styles.accessibilityDesc}>{i18n.t('largerTextDesc')}</Text>
@@ -286,14 +287,14 @@ export default function SettingsScreen() {
               <Switch
                 value={accessibilitySettings.larger_text}
                 onValueChange={(v) => updateAccessibilitySetting('larger_text', v)}
-                trackColor={{ false: colors.lightGray, true: colors.navy }}
+                trackColor={{ false: colors.charcoal15, true: colors.charcoal }}
                 thumbColor={colors.white}
               />
             </View>
             <View style={styles.menuDivider} />
             <View style={styles.accessibilityItem}>
               <View style={styles.accessibilityLeft}>
-                <Ionicons name="ear-outline" size={20} color={colors.darkGray} />
+                <Ionicons name="ear-outline" size={20} color={colors.charcoal} />
                 <View style={styles.accessibilityText}>
                   <Text style={styles.menuItemLabel}>{i18n.t('screenReader')}</Text>
                   <Text style={styles.accessibilityDesc}>{i18n.t('screenReaderDesc')}</Text>
@@ -302,7 +303,7 @@ export default function SettingsScreen() {
               <Switch
                 value={accessibilitySettings.screen_reader}
                 onValueChange={(v) => updateAccessibilitySetting('screen_reader', v)}
-                trackColor={{ false: colors.lightGray, true: colors.navy }}
+                trackColor={{ false: colors.charcoal15, true: colors.charcoal }}
                 thumbColor={colors.white}
               />
             </View>
@@ -381,7 +382,7 @@ export default function SettingsScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{i18n.t('selectLanguage')}</Text>
             <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
-              <Ionicons name="close" size={24} color={colors.darkGray} />
+              <Ionicons name="close" size={24} color={colors.charcoal} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.languageList}>
@@ -402,7 +403,7 @@ export default function SettingsScreen() {
                   </View>
                 </View>
                 {currentLanguage === lang.code && (
-                  <Ionicons name="checkmark-circle" size={24} color={colors.navy} />
+                  <Ionicons name="checkmark-circle" size={24} color={colors.gold} />
                 )}
               </TouchableOpacity>
             ))}
@@ -422,10 +423,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 20,
     paddingVertical: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   backButton: {
     flexDirection: 'row',
@@ -434,19 +435,20 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: colors.navy,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal,
     marginLeft: spacing.xs,
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
   },
   headerSpacer: {
-    width: 70, // Balance the back button width
+    width: 70,
   },
   scrollContent: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 20,
     paddingTop: spacing.xs,
     paddingBottom: spacing.md,
   },
@@ -457,10 +459,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: '600',
-    color: colors.darkGray,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.gold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 3,
     marginBottom: 4,
     marginLeft: spacing.xs,
   },
@@ -479,7 +481,8 @@ const styles = StyleSheet.create({
   },
   menuItemLabel: {
     fontSize: 15,
-    color: colors.navy,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal,
     marginLeft: spacing.sm,
   },
   menuItemDanger: {
@@ -487,14 +490,15 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     marginHorizontal: spacing.sm,
   },
 
   // Version
   version: {
     fontSize: 11,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal30,
     textAlign: 'center',
     marginTop: spacing.xs,
   },
@@ -507,7 +511,8 @@ const styles = StyleSheet.create({
   },
   languageText: {
     fontSize: 14,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
   },
 
   // Accessibility
@@ -530,7 +535,8 @@ const styles = StyleSheet.create({
   },
   accessibilityDesc: {
     fontSize: 11,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
     marginTop: 1,
   },
 
@@ -543,20 +549,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 20,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
     backgroundColor: colors.white,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
   },
   languageList: {
     flex: 1,
-    padding: spacing.md,
+    padding: 20,
   },
   languageItem: {
     flexDirection: 'row',
@@ -564,14 +570,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.white,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: shape.borderRadius,
     marginBottom: spacing.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   languageItemSelected: {
-    borderColor: colors.navy,
-    backgroundColor: `${colors.navy}08`,
+    borderColor: colors.gold,
+    backgroundColor: colors.goldOverlay,
   },
   languageItemLeft: {
     flexDirection: 'row',
@@ -583,12 +589,13 @@ const styles = StyleSheet.create({
   },
   languageNative: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.charcoal,
   },
   languageName: {
     fontSize: 13,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
     marginTop: 2,
   },
 });

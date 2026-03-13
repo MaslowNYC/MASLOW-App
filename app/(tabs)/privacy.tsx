@@ -9,7 +9,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../../src/theme';
+import { colors } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 
 export default function PrivacyScreen() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function PrivacyScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.navy} />
+          <Ionicons name="chevron-back" size={24} color={colors.charcoal} />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy Policy</Text>
@@ -416,7 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   backButton: {
     flexDirection: 'row',
@@ -425,13 +426,13 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: colors.navy,
+    color: colors.charcoal,
     marginLeft: spacing.xs,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   headerSpacer: {
     width: 60,
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
   },
   lastUpdated: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.md,
   },
   intro: {
@@ -455,14 +456,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   subTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
   },
   bulletHighlight: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     lineHeight: 24,
     marginBottom: 4,
     fontWeight: '600',
@@ -529,7 +530,7 @@ const styles = StyleSheet.create({
   },
   contactInfo: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: 6,
   },
   draftNotice: {

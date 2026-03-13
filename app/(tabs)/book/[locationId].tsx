@@ -17,7 +17,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
 import { supabase, getSafeSession } from '../../../lib/supabase';
-import { colors, spacing } from '../../../src/theme';
+import { colors, fonts, shape } from '../../../src/theme/colors';
+import { spacing } from '../../../src/theme';
 import { MaslowCard, MaslowButton } from '../../../src/components';
 import { useHaptics } from '../../../src/hooks/useHaptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -175,7 +176,7 @@ const getAvailabilityStatus = (queueCount: number): { color: string; label: stri
   if (queueCount === 0) return { color: colors.success, label: 'Available', disabled: false };
   if (queueCount <= 2) return { color: '#F59E0B', label: `${queueCount} ahead`, disabled: false };
   if (queueCount <= 5) return { color: colors.error, label: `${queueCount} ahead`, disabled: false };
-  return { color: colors.darkGray, label: 'Full', disabled: true };
+  return { color: colors.charcoal50, label: 'Full', disabled: true };
 };
 
 // Sample brand logos from Clearbit
@@ -537,14 +538,14 @@ export default function BookingFlowScreen() {
       // Load session types from database
       const { data: sessionTypesData } = await supabase
         .from('session_types')
-        .select('id, name, duration_minutes, pass_cost, cash_price, sample_limit')
+        .select('id, name, duration_minutes, passes_included, price_cents, sample_limit')
         .eq('is_active', true)
         .order('sort_order') as { data: Array<{
           id: number;
           name: string;
           duration_minutes: number;
-          pass_cost: number;
-          cash_price: string;
+          passes_included: number;
+          price_cents: number;
           sample_limit: number;
         }> | null };
 
@@ -553,8 +554,8 @@ export default function BookingFlowScreen() {
           id: st.id,
           name: st.name,
           minutes: st.duration_minutes,
-          passes: st.pass_cost,
-          cash: parseFloat(st.cash_price),
+          passes: st.passes_included,
+          cash: st.price_cents / 100,
           samples: st.sample_limit,
         }))
       );
@@ -641,40 +642,24 @@ export default function BookingFlowScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Calculate end time for metadata
-      const startTime = bookingData.date;
-      const endTime = new Date(startTime.getTime() + bookingData.duration * 60000);
+      // Get session type ID for the selected duration
+      const selectedSessionType = durationOptions.find(opt => opt.minutes === bookingData.duration);
+      if (!selectedSessionType) {
+        throw new Error('Invalid session type selected');
+      }
 
-      // Calculate amount based on duration (in cents)
-      const durationOption = durationOptions.find(opt => opt.minutes === bookingData.duration);
-      const amountCents = (durationOption?.cash || 5) * 100;
-
-      // 2. Create payment intent via API
-      const response = await fetch(
-        'https://maslow.nyc/api/stripe/create-payment-intent',
+      // 2. Create payment intent via Supabase Edge Function
+      const { data: intentData, error: intentError } = await supabase.functions.invoke(
+        'create-payment-intent',
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: amountCents,
-            session_type: durationOptions.find(o => o.minutes === bookingData.duration)?.name?.toLowerCase().replace(' ', '_') || 'standard',
-            user_id: user.id,
-            location_id: locationId,
-            suite_id: bookingData.suite.id,
-            starts_at: startTime.toISOString(),
-            ends_at: endTime.toISOString(),
-            duration_minutes: bookingData.duration,
-            preferences: bookingData.preferences,
-          }),
+          body: { session_type_id: selectedSessionType.id },
         }
       );
 
-      const { clientSecret, error: intentError } = await response.json();
+      const clientSecret = intentData?.clientSecret;
 
       if (intentError || !clientSecret) {
-        throw new Error(intentError || 'Failed to create payment');
+        throw new Error(intentError?.message || intentData?.error || 'Failed to create payment');
       }
 
       // 3. Init payment sheet (handles Apple Pay / Google Pay automatically)
@@ -697,7 +682,7 @@ export default function BookingFlowScreen() {
         throw new Error(paymentError.message);
       }
 
-      // 5. Payment succeeded - show waiting state and listen for booking
+      // 5. Payment succeeded - show waiting state and listen for session
       haptics.success();
       setAwaitingBooking(true);
       setStep('success');
@@ -705,21 +690,21 @@ export default function BookingFlowScreen() {
       // Track if we've already navigated
       let hasNavigated = false;
 
-      // 6. Subscribe to Supabase realtime for this user's new bookings
+      // 6. Subscribe to Supabase realtime for this user's new sessions
       const subscription = supabase
-        .channel('booking-confirmation')
+        .channel('session-confirmation')
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'bookings',
+            table: 'sessions',
             filter: `user_id=eq.${user.id}`,
           },
           () => {
             if (hasNavigated) return;
             hasNavigated = true;
-            // Booking created by webhook - navigate to Pass tab
+            // Session created by webhook - navigate to Pass tab
             setAwaitingBooking(false);
             subscription.unsubscribe();
             haptics.success();
@@ -781,7 +766,7 @@ export default function BookingFlowScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.navy} />
+          <ActivityIndicator size="large" color={colors.charcoal} />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
@@ -798,7 +783,7 @@ export default function BookingFlowScreen() {
           disabled={step === 'success'}
         >
           {step !== 'success' && (
-            <Ionicons name="arrow-back" size={24} color={colors.navy} />
+            <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
           )}
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{getStepTitle()}</Text>
@@ -829,7 +814,7 @@ export default function BookingFlowScreen() {
                         setPaymentMethod('passes');
                       }}
                     >
-                      <Ionicons name="card" size={14} color={paymentMethod === 'passes' ? colors.gold : colors.darkGray} />
+                      <Ionicons name="card" size={14} color={paymentMethod === 'passes' ? colors.gold : colors.charcoal50} />
                       <Text style={[
                         styles.paymentToggleText,
                         paymentMethod === 'passes' && styles.paymentToggleTextActive,
@@ -845,7 +830,7 @@ export default function BookingFlowScreen() {
                         setPaymentMethod('cash');
                       }}
                     >
-                      <Ionicons name="cash" size={14} color={paymentMethod === 'cash' ? colors.gold : colors.darkGray} />
+                      <Ionicons name="cash" size={14} color={paymentMethod === 'cash' ? colors.gold : colors.charcoal50} />
                       <Text style={[
                         styles.paymentToggleText,
                         paymentMethod === 'cash' && styles.paymentToggleTextActive,
@@ -901,7 +886,7 @@ export default function BookingFlowScreen() {
                         <Ionicons
                           name="sparkles"
                           size={9}
-                          color={!canAfford ? colors.darkGray : isSelected ? colors.gold : colors.darkGray}
+                          color={!canAfford ? colors.charcoal50 : isSelected ? colors.gold : colors.charcoal50}
                         />
                         <Text style={[
                           styles.durationCardSamplesText,
@@ -985,7 +970,7 @@ export default function BookingFlowScreen() {
                     setShowDatePicker(true);
                   }}
                 >
-                  <Ionicons name="calendar-outline" size={18} color={showDatePicker ? colors.gold : colors.navy} />
+                  <Ionicons name="calendar-outline" size={18} color={showDatePicker ? colors.gold : colors.charcoal} />
                 </TouchableOpacity>
               </View>
               {showDatePicker && (
@@ -1029,7 +1014,7 @@ export default function BookingFlowScreen() {
                     <Ionicons
                       name={window.icon as any}
                       size={14}
-                      color={selectedTimeWindow === window.id ? colors.gold : colors.navy}
+                      color={selectedTimeWindow === window.id ? colors.gold : colors.charcoal}
                     />
                     <Text style={[
                       styles.timeWindowUltraLabel,
@@ -1053,7 +1038,7 @@ export default function BookingFlowScreen() {
                     }}
                     style={styles.intervalToggle}
                   >
-                    <Ionicons name="time-outline" size={12} color={colors.darkGray} />
+                    <Ionicons name="time-outline" size={12} color={colors.charcoal50} />
                     <Text style={styles.intervalToggleText}>{showExactTimes ? '30m' : '10m'}</Text>
                   </TouchableOpacity>
                 </View>
@@ -1110,7 +1095,7 @@ export default function BookingFlowScreen() {
                     <Text style={styles.legendText}>Busy</Text>
                   </View>
                   <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: colors.darkGray }]} />
+                    <View style={[styles.legendDot, { backgroundColor: colors.charcoal50 }]} />
                     <Text style={styles.legendText}>Full</Text>
                   </View>
                 </View>
@@ -1263,7 +1248,7 @@ export default function BookingFlowScreen() {
                       <Ionicons
                         name={option.icon as any}
                         size={14}
-                        color={isSelected ? colors.gold : colors.darkGray}
+                        color={isSelected ? colors.gold : colors.charcoal50}
                       />
                       <Text style={[
                         styles.ambienceLabel,
@@ -1278,8 +1263,11 @@ export default function BookingFlowScreen() {
         )}
 
         {step === 'samples' && (() => {
-          const maxSamples = bookingData.duration === 10 ? 2 : 5;
+          const selectedOption = durationOptions.find(o => o.minutes === bookingData.duration);
+          const maxSamples = selectedOption?.samples ?? 5;
           const canSelect = bookingData.preferences.samples.length < maxSamples;
+          const preSelected = bookingData.preferences.samples.length;
+          const remaining = maxSamples - preSelected;
 
           return (
             <View>
@@ -1295,9 +1283,9 @@ export default function BookingFlowScreen() {
                   </View>
                 </View>
                 <Text style={styles.sectionSubtitle}>
-                  {bookingData.preferences.samples.length > 0
-                    ? `Your Quick Visit favorites are pre-selected. Choose ${maxSamples === 2 ? 'up to 2' : 'up to 5'} samples total.`
-                    : `Premium single-use packets to take home and try. Choose ${maxSamples === 2 ? '2 samples' : 'up to 5 samples'}.`
+                  {preSelected > 0
+                    ? `${preSelected} of your saved preferences are already selected. You have ${remaining} more to pick.`
+                    : `Choose up to ${maxSamples} complimentary sample${maxSamples !== 1 ? 's' : ''} — premium single-use packets to take with you.`
                   }
                 </Text>
                 <View style={styles.samplesGrid}>
@@ -1339,7 +1327,8 @@ export default function BookingFlowScreen() {
                           } else {
                             // Check limit using functional update to avoid stale closure
                             setBookingData(prev => {
-                              const currentMax = prev.duration === 10 ? 2 : 5;
+                              const opt = durationOptions.find(o => o.minutes === prev.duration);
+                              const currentMax = opt?.samples ?? 5;
                               if (prev.preferences.samples.length < currentMax) {
                                 haptics.light();
                                 return {
@@ -1373,7 +1362,7 @@ export default function BookingFlowScreen() {
                           <Ionicons
                             name={sample.icon as any}
                             size={28}
-                            color={isSelected ? colors.gold : isDisabled ? colors.lightGray : colors.navy}
+                            color={isSelected ? colors.gold : isDisabled ? colors.charcoal10 : colors.charcoal}
                           />
                         )}
                         <Text style={[
@@ -1385,11 +1374,11 @@ export default function BookingFlowScreen() {
                     );
                   })}
                 </View>
-                {bookingData.duration === 10 && bookingData.preferences.samples.length === 2 && (
+                {bookingData.preferences.samples.length === maxSamples && maxSamples < 5 && (
                   <View style={styles.samplesUpgradeHint}>
                     <Ionicons name="arrow-up-circle" size={20} color={colors.gold} />
                     <Text style={styles.samplesUpgradeText}>
-                      Book 15+ minutes to get 5 samples instead of 2!
+                      Book a longer session to unlock more samples — up to 5 for 30+ minutes.
                     </Text>
                   </View>
                 )}
@@ -1604,7 +1593,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   backButton: {
     padding: 6,
@@ -1613,8 +1602,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -1626,7 +1615,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 3,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     borderRadius: 1.5,
     overflow: 'hidden',
   },
@@ -1637,7 +1626,7 @@ const styles = StyleSheet.create({
   progressText: {
     marginTop: 2,
     fontSize: 10,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
   },
   scrollContent: {
@@ -1652,17 +1641,17 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 16,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   instruction: {
     fontSize: 16,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.lg,
     textAlign: 'center',
   },
   comingSoon: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: spacing.xl,
@@ -1708,20 +1697,20 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.lg,
     marginBottom: spacing.xs,
   },
   successSubtitle: {
     fontSize: 16,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.xl,
     textAlign: 'center',
   },
   footer: {
     padding: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
     backgroundColor: colors.cream,
   },
   creditBadge: {
@@ -1734,7 +1723,7 @@ const styles = StyleSheet.create({
   creditText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   suitesContainer: {
     gap: spacing.md,
@@ -1758,7 +1747,7 @@ const styles = StyleSheet.create({
   suiteName: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: 2,
   },
   suiteStatus: {
@@ -1780,12 +1769,12 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     borderRadius: 12,
   },
   capabilityText: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   emptyCard: {
     alignItems: 'center',
@@ -1793,29 +1782,29 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
   },
   section: {
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.navy,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.charcoal,
     marginBottom: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.md,
     lineHeight: 18,
   },
@@ -1830,7 +1819,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
   },
   dateButtonSelected: {
@@ -1840,7 +1829,7 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: 4,
   },
   dateButtonTextSelected: {
@@ -1848,7 +1837,7 @@ const styles = StyleSheet.create({
   },
   dateButtonSubtext: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   timeWindowsGrid: {
     flexDirection: 'row',
@@ -1861,7 +1850,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     minHeight: 120,
     justifyContent: 'center',
@@ -1873,7 +1862,7 @@ const styles = StyleSheet.create({
   timeWindowCardLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.sm,
   },
   timeWindowCardLabelSelected: {
@@ -1881,7 +1870,7 @@ const styles = StyleSheet.create({
   },
   timeWindowCardTime: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: 4,
   },
   timeWindowCardTimeSelected: {
@@ -1898,7 +1887,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
   },
   durationButtonSelected: {
@@ -1908,19 +1897,19 @@ const styles = StyleSheet.create({
   durationButtonText: {
     fontSize: 28,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   durationButtonTextSelected: {
     color: colors.gold,
   },
   durationMinutes: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: 2,
   },
   durationNote: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
     marginTop: spacing.sm,
   },
@@ -1933,7 +1922,7 @@ const styles = StyleSheet.create({
   },
   paymentToggle: {
     flexDirection: 'row',
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     borderRadius: 6,
     padding: 2,
   },
@@ -1951,46 +1940,47 @@ const styles = StyleSheet.create({
   paymentToggleText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   paymentToggleTextActive: {
     color: colors.gold,
   },
   durationGrid: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
   durationCard: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     backgroundColor: colors.white,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderRadius: shape.borderRadius,
+    borderWidth: 1,
+    borderColor: colors.charcoal15,
     alignItems: 'center',
   },
   durationCardSelected: {
+    borderWidth: 2,
     borderColor: colors.gold,
-    backgroundColor: `${colors.gold}15`,
+    backgroundColor: colors.goldOverlay,
   },
   durationCardDisabled: {
     opacity: 0.4,
     backgroundColor: colors.cream,
   },
   durationCardMinutes: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.navy,
+    fontSize: 20,
+    fontFamily: fonts.serifRegular,
+    color: colors.charcoal,
   },
   durationCardMinutesSelected: {
-    color: colors.gold,
+    color: colors.charcoal,
   },
   durationCardPrice: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.darkGray,
-    marginTop: 1,
+    fontSize: 12,
+    fontFamily: fonts.sansRegular,
+    color: colors.gold,
+    marginTop: 2,
   },
   durationCardPriceSelected: {
     color: colors.gold,
@@ -2003,13 +1993,13 @@ const styles = StyleSheet.create({
   },
   durationCardSamplesText: {
     fontSize: 8,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   durationCardSamplesTextSelected: {
     color: colors.gold,
   },
   durationCardTextDisabled: {
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   buyCreditsLink: {
     flexDirection: 'row',
@@ -2030,7 +2020,7 @@ const styles = StyleSheet.create({
   },
   creditBalanceHint: {
     fontSize: 10,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -2051,7 +2041,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2062,14 +2052,14 @@ const styles = StyleSheet.create({
   dayButtonLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   dayButtonLabelSelected: {
     color: colors.gold,
   },
   dayButtonDate: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: 2,
   },
   dayButtonPickDate: {
@@ -2086,7 +2076,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     borderRadius: 12,
     gap: spacing.xs,
   },
@@ -2096,7 +2086,7 @@ const styles = StyleSheet.create({
   },
   optionButtonText: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     fontWeight: '500',
   },
   optionButtonTextSelected: {
@@ -2110,7 +2100,7 @@ const styles = StyleSheet.create({
   temperatureValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.md,
   },
   temperatureSlider: {
@@ -2123,7 +2113,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     borderRadius: 12,
     alignItems: 'center',
   },
@@ -2134,7 +2124,7 @@ const styles = StyleSheet.create({
   tempButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   tempButtonTextSelected: {
     color: colors.white,
@@ -2148,7 +2138,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   toggleLeft: {
     flexDirection: 'row',
@@ -2158,13 +2148,13 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   toggle: {
     width: 51,
     height: 31,
     borderRadius: 15.5,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     padding: 2,
     justifyContent: 'center',
   },
@@ -2176,7 +2166,7 @@ const styles = StyleSheet.create({
     height: 27,
     borderRadius: 13.5,
     backgroundColor: colors.white,
-    shadowColor: colors.navy,
+    shadowColor: colors.charcoal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -2196,7 +2186,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     borderRadius: 12,
     padding: spacing.sm,
     alignItems: 'center',
@@ -2224,7 +2214,7 @@ const styles = StyleSheet.create({
   },
   sampleName: {
     fontSize: 11,
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -2233,7 +2223,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sampleNameDisabled: {
-    color: colors.lightGray,
+    color: colors.charcoal10,
   },
   sampleLogo: {
     width: 32,
@@ -2242,7 +2232,7 @@ const styles = StyleSheet.create({
   },
   samplesCount: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
     marginTop: spacing.md,
     fontWeight: '600',
@@ -2262,7 +2252,7 @@ const styles = StyleSheet.create({
   samplesCounterText: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   samplesUpgradeHint: {
     flexDirection: 'row',
@@ -2278,7 +2268,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     lineHeight: 18,
   },
   // Time Selection Drill-Down Styles
@@ -2291,7 +2281,7 @@ const styles = StyleSheet.create({
   },
   backToWindowsText: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     fontWeight: '500',
   },
   timeSlotsGrid: {
@@ -2305,7 +2295,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
   },
   timeSlotCardSelected: {
@@ -2315,7 +2305,7 @@ const styles = StyleSheet.create({
   timeSlotText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   timeSlotTextSelected: {
     color: colors.gold,
@@ -2330,12 +2320,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   exactTimeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   exactTimesScroll: {
     maxHeight: 400,
@@ -2366,7 +2356,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     minWidth: 70,
     alignItems: 'center',
   },
@@ -2377,7 +2367,7 @@ const styles = StyleSheet.create({
   knobOptionText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   knobOptionTextSelected: {
@@ -2392,7 +2382,7 @@ const styles = StyleSheet.create({
     borderColor: colors.gold,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.navy,
+    shadowColor: colors.charcoal,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -2401,13 +2391,13 @@ const styles = StyleSheet.create({
   knobCenterLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: 4,
     textAlign: 'center',
   },
   musicKnobHint: {
     fontSize: 10,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: 6,
     fontStyle: 'italic',
   },
@@ -2445,7 +2435,7 @@ const styles = StyleSheet.create({
   compactSectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -2461,7 +2451,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2472,7 +2462,7 @@ const styles = StyleSheet.create({
   durationCompactNumber: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   durationCompactNumberSelected: {
     color: colors.gold,
@@ -2488,7 +2478,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2499,7 +2489,7 @@ const styles = StyleSheet.create({
   dayCompactLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   dayCompactLabelSelected: {
     color: colors.gold,
@@ -2517,7 +2507,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     gap: spacing.xs,
   },
@@ -2528,14 +2518,14 @@ const styles = StyleSheet.create({
   timeWindowCompactLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   timeWindowCompactLabelSelected: {
     color: colors.gold,
   },
   timeWindowCompactTime: {
     fontSize: 11,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   // Time Slots Header & Scroll
   timeSlotsHeader: {
@@ -2551,7 +2541,7 @@ const styles = StyleSheet.create({
   },
   exactTimeLinkText: {
     fontSize: 11,
-    color: colors.navy,
+    color: colors.charcoal,
     fontWeight: '600',
   },
   timeSlotsScroll: {
@@ -2564,7 +2554,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     minWidth: 80,
     alignItems: 'center',
   },
@@ -2575,7 +2565,7 @@ const styles = StyleSheet.create({
   timeSlotCompactText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   timeSlotCompactTextSelected: {
     color: colors.gold,
@@ -2590,7 +2580,7 @@ const styles = StyleSheet.create({
   ultraCompactTitle: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -2606,7 +2596,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
   },
   durationChipSelected: {
@@ -2616,7 +2606,7 @@ const styles = StyleSheet.create({
   durationChipText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   durationChipTextSelected: {
     color: colors.gold,
@@ -2633,7 +2623,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2644,7 +2634,7 @@ const styles = StyleSheet.create({
   dayChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   dayChipTextSelected: {
     color: colors.gold,
@@ -2663,7 +2653,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -2676,7 +2666,7 @@ const styles = StyleSheet.create({
   timeWindowUltraLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   timeWindowUltraLabelSelected: {
     color: colors.gold,
@@ -2684,7 +2674,7 @@ const styles = StyleSheet.create({
   },
   timeWindowUltraTime: {
     fontSize: 9,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   // Time Slots Ultra Compact
   timeSlotsTitleRow: {
@@ -2705,7 +2695,7 @@ const styles = StyleSheet.create({
   intervalToggleText: {
     fontSize: 9,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   timeSlotUltraGrid: {
     flexDirection: 'row',
@@ -2718,7 +2708,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
   },
   timeSlotUltraChipSelected: {
@@ -2728,7 +2718,7 @@ const styles = StyleSheet.create({
   timeSlotUltraText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   timeSlotUltraTextSelected: {
     color: colors.gold,
@@ -2736,10 +2726,10 @@ const styles = StyleSheet.create({
   },
   timeSlotDisabled: {
     opacity: 0.5,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
   },
   timeSlotTextDisabled: {
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   availabilityRow: {
     flexDirection: 'row',
@@ -2762,7 +2752,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
   },
   legendItem: {
     flexDirection: 'row',
@@ -2776,7 +2766,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 9,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     fontWeight: '500',
   },
   // Environment Card Styles - Compact to fit above footer
@@ -2813,7 +2803,7 @@ const styles = StyleSheet.create({
   envCardTitle: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -2830,7 +2820,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     alignItems: 'center',
   },
   envChipSmallSelected: {
@@ -2840,7 +2830,7 @@ const styles = StyleSheet.create({
   envChipSmallText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   envChipSmallTextSelected: {
     color: colors.gold,
@@ -2860,7 +2850,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   ambienceButtonSelected: {
     borderColor: colors.gold,
@@ -2870,7 +2860,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     marginBottom: 3,
   },
   ambienceIndicatorLit: {
@@ -2884,7 +2874,7 @@ const styles = StyleSheet.create({
   ambienceLabel: {
     fontSize: 8,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
     marginTop: 2,
   },
@@ -2896,7 +2886,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 20,
     borderRadius: 10,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     padding: 2,
     justifyContent: 'center',
   },
@@ -2932,7 +2922,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   envChipSelected: {
     borderColor: colors.gold,
@@ -2941,7 +2931,7 @@ const styles = StyleSheet.create({
   envChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   envChipTextSelected: {
     color: colors.gold,
@@ -2956,18 +2946,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   toggleLabelCompact: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   toggleSwitchCompact: {
     width: 44,
     height: 26,
     borderRadius: 13,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     padding: 2,
     justifyContent: 'center',
   },
@@ -3005,13 +2995,13 @@ const styles = StyleSheet.create({
   },
   sliderLabelText: {
     fontSize: 9,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     fontWeight: '600',
   },
   sliderTouchArea: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     height: 3,
     borderRadius: 1.5,
     position: 'relative',
@@ -3031,7 +3021,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: colors.darkGray,
+    borderColor: colors.charcoal50,
   },
   sliderDotActive: {
     width: 18,
@@ -3045,7 +3035,7 @@ const styles = StyleSheet.create({
   knobSelectedLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -3069,7 +3059,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.darkGray,
+    backgroundColor: colors.charcoal50,
   },
   knobDotSelected: {
     width: 12,
@@ -3101,7 +3091,7 @@ const styles = StyleSheet.create({
   },
   continuousSliderTrack: {
     height: 4,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -3119,7 +3109,7 @@ const styles = StyleSheet.create({
     marginLeft: -10,
     top: '50%',
     marginTop: -10,
-    shadowColor: colors.navy,
+    shadowColor: colors.charcoal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -3132,7 +3122,7 @@ const styles = StyleSheet.create({
   reviewSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
   },
   reviewRow: {
@@ -3143,7 +3133,7 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     flex: 1,
   },
   reviewSamplesGrid: {
@@ -3160,7 +3150,7 @@ const styles = StyleSheet.create({
   reviewSampleText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   creditSummary: {
     marginBottom: spacing.sm,
@@ -3171,12 +3161,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   creditSummaryLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   creditSummaryValue: {
     fontSize: 16,
@@ -3185,7 +3175,7 @@ const styles = StyleSheet.create({
   },
   creditBalance: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
   },
   // Rotatable Music Disc Styles - Compact
@@ -3196,7 +3186,7 @@ const styles = StyleSheet.create({
   musicDiscLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
     marginBottom: 2,
   },
@@ -3210,10 +3200,10 @@ const styles = StyleSheet.create({
     width: 85,
     height: 85,
     borderRadius: 42.5,
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.navy,
+    shadowColor: colors.charcoal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -3266,7 +3256,7 @@ const styles = StyleSheet.create({
   },
   discHint: {
     fontSize: 9,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: 2,
     fontStyle: 'italic',
   },

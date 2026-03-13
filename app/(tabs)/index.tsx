@@ -11,10 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
-import { colors, spacing } from '../../src/theme';
+import { colors, fonts, shape } from '../../src/theme/colors';
 import { useHaptics } from '../../src/hooks/useHaptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -51,19 +49,16 @@ const MASLOW_IMAGES = [
   },
 ];
 
-// Placeholder colors for NYC videos (will be replaced with actual videos)
-const NYC_SCENES = [
-  { color: '#1a1a2e', label: 'SoHo Streets' },
-  { color: '#16213e', label: 'DUMBO Views' },
-  { color: '#0f3460', label: 'City Life' },
-  { color: '#1a1a2e', label: 'Crosswalk' },
-  { color: '#16213e', label: 'Evening Glow' },
-];
+const CAROUSEL_INTERVAL = 5000;
+const FADE_DURATION = 1200;
 
-const AUTHENTICATED_INTERVAL = 5000; // 5 seconds per image
-const AUTHENTICATED_FADE_DURATION = 1200; // Slower dissolve
-const UNAUTHENTICATED_INTERVAL = 8000;
-const UNAUTHENTICATED_FADE_DURATION = 1000;
+// Get time-based greeting
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -71,7 +66,7 @@ export default function HomeScreen() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [firstName, setFirstName] = useState<string>('');
 
-  // Carousel state - track both indices for smooth crossfade
+  // Carousel state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(1);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -84,7 +79,7 @@ export default function HomeScreen() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
-      setCurrentIndex(0); // Reset carousel index on auth change
+      setCurrentIndex(0);
       if (session) {
         fetchUserProfile(session.user.id);
       }
@@ -119,40 +114,34 @@ export default function HomeScreen() {
     }
   };
 
-  // Carousel animation - smooth crossfade without glitches
+  // Carousel animation
   useEffect(() => {
-    if (isAuthenticated === null || isTransitioning) return;
-
-    const images = isAuthenticated ? MASLOW_IMAGES : NYC_SCENES;
-    const interval = isAuthenticated ? AUTHENTICATED_INTERVAL : UNAUTHENTICATED_INTERVAL;
-    const fadeDuration = isAuthenticated ? AUTHENTICATED_FADE_DURATION : UNAUTHENTICATED_FADE_DURATION;
+    if (isAuthenticated === null || !isAuthenticated || isTransitioning) return;
 
     const timer = setTimeout(() => {
       setIsTransitioning(true);
-      const upcomingIndex = (currentIndex + 1) % images.length;
+      const upcomingIndex = (currentIndex + 1) % MASLOW_IMAGES.length;
       setNextIndex(upcomingIndex);
 
-      // Crossfade: current fades out, next fades in
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: fadeDuration,
+          duration: FADE_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(nextFadeAnim, {
           toValue: 1,
-          duration: fadeDuration,
+          duration: FADE_DURATION,
           useNativeDriver: true,
         }),
       ]).start(() => {
-        // After fade completes, swap indices and reset opacities
         setCurrentIndex(upcomingIndex);
-        setNextIndex((upcomingIndex + 1) % images.length);
+        setNextIndex((upcomingIndex + 1) % MASLOW_IMAGES.length);
         fadeAnim.setValue(1);
         nextFadeAnim.setValue(0);
         setIsTransitioning(false);
       });
-    }, interval);
+    }, CAROUSEL_INTERVAL);
 
     return () => clearTimeout(timer);
   }, [isAuthenticated, currentIndex, isTransitioning]);
@@ -166,89 +155,11 @@ export default function HomeScreen() {
     );
   }
 
-  // Unauthenticated UI
+  // Redirect to welcome if not authenticated (shouldn't render here)
   if (!isAuthenticated) {
-    const displayNextIndex = nextIndex % NYC_SCENES.length;
-
     return (
-      <View style={styles.unauthContainer}>
-        {/* Logo Bar */}
-        <SafeAreaView style={styles.logoBar} edges={['top']}>
-          <Text style={styles.logoText}>MASLOW</Text>
-        </SafeAreaView>
-
-        {/* Video/Scene Carousel */}
-        <View style={styles.videoContainer}>
-          {/* Current Scene */}
-          <Animated.View
-            style={[
-              styles.scenePlaceholder,
-              { backgroundColor: NYC_SCENES[currentIndex].color, opacity: fadeAnim },
-            ]}
-          >
-            <Ionicons name="film-outline" size={48} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.sceneLabel}>{NYC_SCENES[currentIndex].label}</Text>
-          </Animated.View>
-
-          {/* Next Scene */}
-          <Animated.View
-            style={[
-              styles.scenePlaceholder,
-              styles.nextScene,
-              { backgroundColor: NYC_SCENES[displayNextIndex].color, opacity: nextFadeAnim },
-            ]}
-          >
-            <Ionicons name="film-outline" size={48} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.sceneLabel}>{NYC_SCENES[displayNextIndex].label}</Text>
-          </Animated.View>
-
-          {/* Gradient Overlay */}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
-            locations={[0, 0.5, 1]}
-            style={styles.gradientOverlay}
-          />
-
-          {/* Page Indicators */}
-          <View style={styles.indicators}>
-            {NYC_SCENES.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.indicator,
-                  currentIndex === index && styles.indicatorActive,
-                ]}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Bottom Buttons */}
-        <SafeAreaView style={styles.buttonsContainer} edges={['bottom']}>
-          <View style={styles.buttonsRow}>
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => {
-                haptics.light();
-                router.push('/(auth)/login');
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.loginButtonText}>Log In</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.signupButton}
-              onPress={() => {
-                haptics.medium();
-                router.push('/(auth)/signup');
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.signupButtonText}>Create Account</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.gold} />
       </View>
     );
   }
@@ -257,79 +168,83 @@ export default function HomeScreen() {
   const displayNextIndex = nextIndex % MASLOW_IMAGES.length;
 
   return (
-    <SafeAreaView style={styles.authContainer} edges={['top']}>
-      {/* Small Logo */}
-      <View style={styles.smallLogoContainer}>
-        <Text style={styles.smallLogoText}>MASLOW</Text>
-      </View>
-
-      {/* Image Carousel */}
-      <View style={styles.carouselContainer}>
-        {/* Current Image */}
-        <Animated.View style={[styles.imageWrapper, { opacity: fadeAnim }]}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header: Logo left-aligned */}
+        <View style={styles.header}>
           <Image
-            source={MASLOW_IMAGES[currentIndex].source}
-            style={styles.heroImage}
-            resizeMode="cover"
+            source={require('../../assets/MASLOW_Round_Inverted.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
           />
-          <View style={styles.imageOverlay}>
-            <Text style={styles.overlayText}>New York's First Real Restroom</Text>
-            <Text style={styles.overlaySubtext}>{MASLOW_IMAGES[currentIndex].caption}</Text>
-          </View>
-        </Animated.View>
+        </View>
 
-        {/* Next Image */}
-        <Animated.View style={[styles.imageWrapper, styles.nextImage, { opacity: nextFadeAnim }]}>
-          <Image
-            source={MASLOW_IMAGES[displayNextIndex].source}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-          <View style={styles.imageOverlay}>
-            <Text style={styles.overlayText}>New York's First Real Restroom</Text>
-            <Text style={styles.overlaySubtext}>{MASLOW_IMAGES[displayNextIndex].caption}</Text>
-          </View>
-        </Animated.View>
+        {/* Greeting */}
+        <View style={styles.greetingSection}>
+          <Text style={styles.greeting}>
+            {getGreeting()}, {firstName || 'there'}.
+          </Text>
+          <Text style={styles.subLabel}>YOUR NEXT VISIT</Text>
+        </View>
 
-      </View>
+        {/* Image Carousel - full width, edge to edge */}
+        <View style={styles.carouselContainer}>
+          {/* Current Image */}
+          <Animated.View style={[styles.imageWrapper, { opacity: fadeAnim }]}>
+            <Image
+              source={MASLOW_IMAGES[currentIndex].source}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          </Animated.View>
 
-      {/* Compact Quick Actions */}
-      <View style={styles.quickActionsContainer}>
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => {
-            haptics.light();
-            router.push('/quick-visit');
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="flash-outline" size={18} color={colors.navy} />
-          <Text style={styles.quickActionText}>Quick Visit</Text>
-        </TouchableOpacity>
+          {/* Next Image */}
+          <Animated.View style={[styles.imageWrapper, styles.nextImage, { opacity: nextFadeAnim }]}>
+            <Image
+              source={MASLOW_IMAGES[displayNextIndex].source}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          </Animated.View>
+        </View>
 
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => {
-            haptics.light();
-            router.push('/(tabs)/locations');
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="calendar-outline" size={18} color={colors.navy} />
-          <Text style={styles.quickActionText}>Reserve</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Quick Actions - charcoal bg, cream text, full width */}
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => {
+              haptics.light();
+              router.push('/(tabs)/locations');
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.quickActionText}>BOOK A VISIT</Text>
+          </TouchableOpacity>
 
-      {/* Welcome Text */}
-      {firstName && (
-        <Text style={styles.welcomeText}>Welcome back, {firstName}</Text>
-      )}
-    </SafeAreaView>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => {
+              haptics.light();
+              router.push('/(tabs)/pass');
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.quickActionText}>MY PASS</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Loading
+  container: {
+    flex: 1,
+    backgroundColor: colors.cream,
+  },
+  safeArea: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -337,129 +252,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
   },
 
-  // Unauthenticated styles
-  unauthContainer: {
-    flex: 1,
-    backgroundColor: colors.navy,
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  logoBar: {
-    backgroundColor: colors.cream,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.navy,
-    letterSpacing: 6,
-  },
-  videoContainer: {
-    flex: 1,
-    position: 'relative',
-    backgroundColor: colors.navy,
-  },
-  scenePlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nextScene: {
-    zIndex: -1,
-  },
-  sceneLabel: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: spacing.sm,
-    fontWeight: '500',
-    letterSpacing: 1,
-  },
-  gradientOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 250,
-  },
-  indicators: {
-    position: 'absolute',
-    bottom: 140,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  indicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  indicatorActive: {
-    backgroundColor: colors.gold,
-    width: 20,
-  },
-  buttonsContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  buttonsRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  loginButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.white,
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  signupButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    backgroundColor: colors.gold,
-    alignItems: 'center',
-  },
-  signupButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.navy,
+  logoImage: {
+    width: 40,
+    height: 40,
   },
 
-  // Authenticated styles
-  authContainer: {
-    flex: 1,
-    backgroundColor: '#F5F3F0',
+  // Greeting
+  greetingSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  smallLogoContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
+  greeting: {
+    fontSize: 28,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
+    marginBottom: 8,
   },
-  smallLogoText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.navy,
-    letterSpacing: 4,
-    opacity: 0.6,
+  subLabel: {
+    fontSize: 11,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.gold,
+    letterSpacing: 3,
   },
+
+  // Carousel - full width, no border radius
   carouselContainer: {
     flex: 1,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    borderRadius: 16,
-    overflow: 'hidden',
     position: 'relative',
   },
   imageWrapper: {
@@ -472,57 +296,25 @@ const styles = StyleSheet.create({
   nextImage: {
     zIndex: -1,
   },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  overlayText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 1,
-  },
-  overlaySubtext: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 14,
-    fontWeight: '400',
-    textAlign: 'center',
-    marginTop: 4,
-  },
+
+  // Quick Actions
   quickActionsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    gap: spacing.md,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 12,
   },
   quickActionButton: {
-    flex: 1,
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.cream,
-    borderWidth: 1.5,
-    borderColor: colors.gold,
-    borderRadius: 8,
+    paddingVertical: 16,
+    backgroundColor: colors.charcoal,
+    borderRadius: shape.borderRadius,
   },
   quickActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.navy,
-  },
-  welcomeText: {
     fontSize: 14,
-    color: colors.navy,
-    opacity: 0.5,
-    textAlign: 'center',
-    paddingBottom: spacing.md,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.cream,
+    letterSpacing: 2,
   },
 });

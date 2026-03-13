@@ -11,7 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { colors, spacing } from '../../src/theme';
+import { colors } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowCard } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 
@@ -91,7 +92,7 @@ export default function QuickVisitScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color={colors.navy} />
+          <Ionicons name="close" size={24} color={colors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quick Visit</Text>
         <View style={styles.headerSpacer} />
@@ -125,7 +126,7 @@ export default function QuickVisitScreen() {
               <Ionicons
                 name="ticket-outline"
                 size={16}
-                color={paymentMethod === 'credits' ? colors.gold : colors.darkGray}
+                color={paymentMethod === 'credits' ? colors.gold : colors.charcoal50}
               />
               <Text style={[
                 styles.paymentToggleText,
@@ -147,7 +148,7 @@ export default function QuickVisitScreen() {
               <Ionicons
                 name="cash-outline"
                 size={16}
-                color={paymentMethod === 'cash' ? colors.gold : colors.darkGray}
+                color={paymentMethod === 'cash' ? colors.gold : colors.charcoal50}
               />
               <Text style={[
                 styles.paymentToggleText,
@@ -172,7 +173,7 @@ export default function QuickVisitScreen() {
           {/* Credit Balance Hint */}
           {paymentMethod === 'credits' && (
             <View style={styles.creditBalanceHint}>
-              <Ionicons name="wallet-outline" size={14} color={colors.darkGray} />
+              <Ionicons name="wallet-outline" size={14} color={colors.charcoal50} />
               <Text style={styles.creditBalanceText}>
                 You have {userCredits} credits.{' '}
                 {userCredits < 1 && (
@@ -193,11 +194,11 @@ export default function QuickVisitScreen() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.navy} />
+            <ActivityIndicator size="large" color={colors.charcoal} />
           </View>
         ) : locations.length === 0 ? (
           <MaslowCard padding="lg" style={styles.emptyCard}>
-            <Ionicons name="location-outline" size={48} color={colors.darkGray} />
+            <Ionicons name="location-outline" size={48} color={colors.charcoal50} />
             <Text style={styles.emptyTitle}>No locations available</Text>
             <Text style={styles.emptySubtitle}>Check back soon!</Text>
           </MaslowCard>
@@ -220,7 +221,7 @@ export default function QuickVisitScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={24} color={colors.darkGray} />
+                  <Ionicons name="chevron-forward" size={24} color={colors.charcoal50} />
                 </View>
               </MaslowCard>
             </TouchableOpacity>
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   closeButton: {
     padding: spacing.sm,
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.gold,
     padding: spacing.lg,
-    shadowColor: colors.navy,
+    shadowColor: colors.charcoal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -291,11 +292,11 @@ const styles = StyleSheet.create({
   priceCardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   paymentToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
     borderRadius: 8,
     padding: 2,
     marginBottom: spacing.md,
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
   paymentToggleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   paymentToggleTextActive: {
     color: colors.gold,
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
   priceDetails: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.sm,
   },
   creditBalanceHint: {
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
   },
   creditBalanceText: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   buyCreditsLink: {
     color: colors.gold,
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: spacing.md,
@@ -374,12 +375,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginTop: spacing.md,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginTop: spacing.xs,
   },
   locationCard: {
@@ -395,12 +396,12 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: 2,
   },
   locationAddress: {
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     marginBottom: spacing.sm,
   },
   availabilityBadge: {

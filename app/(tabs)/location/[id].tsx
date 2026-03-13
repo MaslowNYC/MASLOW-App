@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { colors, spacing } from '../../../src/theme';
+import { colors } from '../../../src/theme/colors';
+import { spacing } from '../../../src/theme';
 import { MaslowCard, MaslowButton } from '../../../src/components';
 import { useHaptics } from '../../../src/hooks/useHaptics';
 
@@ -98,11 +99,11 @@ export default function LocationDetailScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.navy} />
+            <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
           </TouchableOpacity>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.navy} />
+          <ActivityIndicator size="large" color={colors.charcoal} />
           <Text style={styles.loadingText}>Loading location...</Text>
         </View>
       </SafeAreaView>
@@ -115,11 +116,11 @@ export default function LocationDetailScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.navy} />
+            <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
           </TouchableOpacity>
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={colors.darkGray} />
+          <Ionicons name="alert-circle-outline" size={64} color={colors.charcoal50} />
           <Text style={styles.errorTitle}>Location Not Found</Text>
           <Text style={styles.errorSubtitle}>
             This location may no longer be available.
@@ -139,7 +140,7 @@ export default function LocationDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.navy} />
+          <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {location.name}
@@ -161,7 +162,7 @@ export default function LocationDetailScreen() {
             />
           ) : (
             <View style={styles.heroImagePlaceholder}>
-              <Ionicons name="image-outline" size={48} color={colors.darkGray} />
+              <Ionicons name="image-outline" size={48} color={colors.charcoal50} />
               <Text style={styles.placeholderText}>No image yet</Text>
             </View>
           )}
@@ -220,7 +221,7 @@ export default function LocationDetailScreen() {
                   <Ionicons
                     name={getAmenityIcon(amenity)}
                     size={14}
-                    color={colors.navy}
+                    color={colors.charcoal}
                   />
                   <Text style={styles.amenityText}>{amenity}</Text>
                 </View>
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
     backgroundColor: colors.cream,
   },
   backButton: {
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 16,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   errorContainer: {
     flex: 1,
@@ -322,13 +323,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     fontSize: 20,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   errorSubtitle: {
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textAlign: 'center',
   },
   heroCard: {
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 12,
     backgroundColor: colors.white,
-    shadowColor: colors.navy,
+    shadowColor: colors.charcoal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
   placeholderText: {
     marginTop: spacing.xs,
     fontSize: 12,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   infoSection: {
     marginBottom: spacing.sm,
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
   },
   infoRow: {
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: spacing.sm,
     fontSize: 14,
-    color: colors.darkGray,
+    color: colors.charcoal50,
     flex: 1,
   },
   availabilityCard: {
@@ -403,11 +404,11 @@ const styles = StyleSheet.create({
   availabilityTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   availabilitySubtitle: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: colors.charcoal50,
   },
   section: {
     marginBottom: spacing.sm,
@@ -415,14 +416,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.darkGray,
+    color: colors.charcoal50,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   descriptionText: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     lineHeight: 20,
     backgroundColor: colors.white,
     padding: spacing.sm,
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
   },
   amenityText: {
     fontSize: 13,
-    color: colors.navy,
+    color: colors.charcoal,
     fontWeight: '500',
   },
   bottomButtonContainer: {
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     backgroundColor: colors.cream,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
   },
   bookButton: {
     backgroundColor: colors.gold,
@@ -475,8 +476,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bookButtonDisabled: {
-    backgroundColor: colors.darkGray,
-    shadowColor: colors.darkGray,
+    backgroundColor: colors.charcoal50,
+    shadowColor: colors.charcoal50,
   },
   bookButtonText: {
     fontSize: 18,

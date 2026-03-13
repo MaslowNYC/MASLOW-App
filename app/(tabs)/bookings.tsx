@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { colors, spacing } from '../../src/theme';
+import { colors, fonts, shape } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowCard, MaslowButton } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 
@@ -189,11 +190,11 @@ export default function BookingsScreen() {
       case 'checked_in':
         return colors.gold;
       case 'completed':
-        return colors.darkGray;
+        return colors.charcoal50;
       case 'cancelled':
         return colors.error;
       default:
-        return colors.darkGray;
+        return colors.charcoal50;
     }
   };
 
@@ -242,16 +243,16 @@ export default function BookingsScreen() {
 
       <View style={styles.bookingDetails}>
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color={colors.darkGray} />
+          <Ionicons name="calendar-outline" size={16} color={colors.charcoal50} />
           <Text style={styles.detailText}>{formatDateTime(booking.start_time)}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={16} color={colors.darkGray} />
+          <Ionicons name="time-outline" size={16} color={colors.charcoal50} />
           <Text style={styles.detailText}>{booking.duration_minutes} minutes</Text>
         </View>
         {booking.suites?.locations?.address && (
           <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={16} color={colors.darkGray} />
+            <Ionicons name="location-outline" size={16} color={colors.charcoal50} />
             <Text style={styles.detailText} numberOfLines={1}>
               {booking.suites.locations.address}
             </Text>
@@ -307,13 +308,13 @@ export default function BookingsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.navy} />
+            <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Bookings</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.navy} />
+          <ActivityIndicator size="large" color={colors.gold} />
           <Text style={styles.loadingText}>Loading bookings...</Text>
         </View>
       </SafeAreaView>
@@ -325,7 +326,7 @@ export default function BookingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.navy} />
+          <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Bookings</Text>
         <View style={styles.headerSpacer} />
@@ -338,7 +339,7 @@ export default function BookingsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.navy}
+            tintColor={colors.gold}
           />
         }
       >
@@ -350,7 +351,7 @@ export default function BookingsScreen() {
             upcomingBookings.map(booking => renderBookingCard(booking, true))
           ) : (
             <MaslowCard style={styles.emptyCard} padding="lg">
-              <Ionicons name="calendar-outline" size={48} color={colors.darkGray} />
+              <Ionicons name="calendar-outline" size={48} color={colors.charcoal50} />
               <Text style={styles.emptyTitle}>No Upcoming Bookings</Text>
               <Text style={styles.emptySubtitle}>
                 Ready to book your next session?
@@ -386,10 +387,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 20,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
     backgroundColor: colors.cream,
   },
   backButton: {
@@ -399,15 +400,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   headerSpacer: {
     width: 40,
   },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 20,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
   },
@@ -419,17 +420,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 16,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
   },
   section: {
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.darkGray,
+    fontSize: 11,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.gold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 3,
     marginBottom: spacing.md,
     marginLeft: spacing.xs,
   },
@@ -447,20 +449,21 @@ const styles = StyleSheet.create({
   },
   locationName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
     marginBottom: 2,
   },
   suiteName: {
     fontSize: 14,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: 12,
+    borderRadius: shape.borderRadius,
     gap: 6,
   },
   statusDot: {
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   bookingDetails: {
     gap: spacing.xs,
@@ -482,18 +485,19 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
     flex: 1,
   },
   cancelButton: {
     marginTop: spacing.md,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
   },
   cancelButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     color: colors.error,
     textAlign: 'center',
   },
@@ -502,14 +506,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.serifLight,
+    color: colors.charcoal,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.darkGray,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal50,
     marginBottom: spacing.lg,
     textAlign: 'center',
   },
@@ -525,14 +530,14 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: `${colors.gold}10`,
+    backgroundColor: colors.goldOverlay,
     borderWidth: 1,
     borderColor: `${colors.gold}40`,
-    borderRadius: 6,
+    borderRadius: shape.borderRadius,
   },
   prefText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: colors.navy,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.charcoal,
   },
 });

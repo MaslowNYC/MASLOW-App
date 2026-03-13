@@ -13,12 +13,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing } from '../../src/theme';
+import { colors, fonts, shape } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import i18n from '../../src/i18n';
 import { useLanguage } from '../../src/context/LanguageContext';
-//import { syncToWatch } from '../../src/utils/watchSync';
 
 // Helper to format membership tier display
 const formatTierDisplay = (tier: string | null): string => {
@@ -89,7 +89,6 @@ export default function PassScreen() {
     }
   };
 
-  
   useEffect(() => {
     fetchMemberData();
   }, []);
@@ -99,20 +98,6 @@ export default function PassScreen() {
       fetchMemberData();
     }, [])
   );
-
-  // Sync to Apple Watch when member data changes
-  //useEffect(() => {
-  //  if (memberData && Platform.OS === 'ios') {
-  //    const watchData = {
-  //      credits: memberData.credits,
-  //      memberNumber: memberData.memberNumberRaw,
-  //      qrUrl: `https://maslownyc.com/member/${String(memberData.memberNumberRaw).padStart(5, '0')}`,
-  //      firstName: memberData.firstName,
-  //      lastName: memberData.lastName,
-  //    };
-  //    syncToWatch(watchData);
-  //  }
-  //}, [memberData?.credits, memberData?.memberNumberRaw]);
 
   const handleAddToWallet = () => {
     haptics.medium();
@@ -129,7 +114,7 @@ export default function PassScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.navy} />
+          <ActivityIndicator size="large" color={colors.gold} />
         </View>
       </SafeAreaView>
     );
@@ -141,49 +126,40 @@ export default function PassScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{i18n.t('memberPass')}</Text>
+        {/* Logo - centered, small */}
+        <View style={styles.logoSection}>
+          <Image
+            source={require('../../assets/MASLOW_Round_Inverted.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
-        {/* QR Code */}
+        {/* QR Code - generous white space, no border */}
         <View style={styles.qrSection}>
-          <View style={styles.qrContainer}>
-            <Image
-              source={require('../../assets/qr-code.png')}
-              style={styles.qrImage}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={require('../../assets/qr-code.png')}
+            style={styles.qrImage}
+            resizeMode="contain"
+          />
         </View>
 
-        {/* Scan Instructions */}
-        <View style={styles.instructionsSection}>
-          <Ionicons name="scan-outline" size={18} color={colors.darkGray} />
-          <Text style={styles.instructionsText}>
-            {i18n.t('scanInstructions')}
-          </Text>
+        {/* Session Info */}
+        <View style={styles.sessionInfo}>
+          <Text style={styles.sessionType}>{memberData?.tier || 'MEMBER'}</Text>
+          <Text style={styles.scanLabel}>SCAN TO ENTER</Text>
         </View>
 
-        {/* Member Info Row */}
-        <View style={styles.infoRow}>
-          {/* Name & Tier */}
-          <View style={styles.infoCard}>
-            <Text style={styles.userName}>{memberData?.name || i18n.t('member')}</Text>
-            <View style={styles.tierRow}>
-              <Ionicons name="ribbon" size={12} color={colors.gold} />
-              <Text style={styles.tierText}>{memberData?.tier}</Text>
-            </View>
-          </View>
-
-          {/* Credits */}
-          <View style={styles.creditsCard}>
-            <Text style={styles.creditsValue}>{memberData?.credits || 0}</Text>
-            <Text style={styles.creditsLabel}>{i18n.t('credits')}</Text>
-          </View>
+        {/* Credits Badge */}
+        <View style={styles.creditsBadge}>
+          <Text style={styles.creditsValue}>{memberData?.credits || 0}</Text>
+          <Text style={styles.creditsLabel}>PASSES</Text>
         </View>
 
-        {/* Wallet Buttons Row */}
+        {/* Member Number - bottom, subtle */}
+        <Text style={styles.memberNumber}>{memberData?.memberNumber}</Text>
+
+        {/* Wallet Buttons */}
         <View style={styles.walletRow}>
           <TouchableOpacity
             style={styles.walletButton}
@@ -225,136 +201,99 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     alignItems: 'center',
   },
 
-  // Header
-  header: {
-    width: '100%',
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
+  // Logo
+  logoSection: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.navy,
-    textAlign: 'center',
+  logoImage: {
+    width: 48,
+    height: 48,
   },
 
-  // QR Code
+  // QR Code - clean, generous white space
   qrSection: {
-    marginBottom: spacing.md,
-  },
-  qrContainer: {
-    padding: 12,
-    backgroundColor: colors.cream,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  qrImage: {
-    width: 240,
-    height: 240,
-  },
-
-  // Instructions
-  instructionsSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
     marginBottom: spacing.lg,
   },
-  instructionsText: {
-    fontSize: 13,
-    color: colors.darkGray,
+  qrImage: {
+    width: 220,
+    height: 220,
   },
 
-  // Info Row - Name/Tier + Credits
-  infoRow: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  infoCard: {
-    flex: 2,
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: spacing.md,
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.navy,
-    marginBottom: 4,
-  },
-  tierRow: {
-    flexDirection: 'row',
+  // Session Info
+  sessionInfo: {
     alignItems: 'center',
-    gap: 4,
+    marginBottom: spacing.xl,
   },
-  tierText: {
-    fontSize: 12,
-    fontWeight: '600',
+  sessionType: {
+    fontSize: 14,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.charcoal,
+    letterSpacing: 2,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  scanLabel: {
+    fontSize: 11,
+    fontFamily: fonts.sansSemiBold,
     color: colors.gold,
+    letterSpacing: 3,
   },
-  creditsCard: {
-    flex: 1,
-    backgroundColor: colors.navy,
-    borderRadius: 12,
-    padding: spacing.md,
-    justifyContent: 'center',
+
+  // Credits Badge
+  creditsBadge: {
+    backgroundColor: colors.charcoal,
+    borderRadius: shape.borderRadius,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: spacing.xl,
   },
   creditsValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.gold,
+    fontSize: 32,
+    fontFamily: fonts.serifLight,
+    color: colors.cream,
   },
   creditsLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.white,
-    opacity: 0.8,
+    fontSize: 10,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.gold,
+    letterSpacing: 2,
+    marginTop: 4,
   },
 
-  // Wallet Buttons Row
+  // Member Number
+  memberNumber: {
+    fontSize: 12,
+    fontFamily: fonts.sansRegular,
+    color: colors.charcoal30,
+    marginBottom: spacing.xl,
+  },
+
+  // Wallet Buttons
   walletRow: {
     flexDirection: 'row',
     width: '100%',
     gap: spacing.sm,
+    marginTop: 'auto',
   },
   walletButton: {
     flex: 1,
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: shape.borderRadius,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.charcoal10,
   },
   walletBadge: {
     width: '90%',

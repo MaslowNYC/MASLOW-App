@@ -13,7 +13,8 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
-import { colors, spacing } from '../../src/theme';
+import { colors } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { MaslowButton } from '../../src/components';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { supabase, getSafeSession } from '../../lib/supabase';
@@ -145,14 +146,19 @@ export default function BuyCreditsScreen() {
         return;
       }
 
+      // Refresh session to ensure token is valid
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      const freshToken = refreshData.session?.access_token || session.access_token;
+
       // 2. Create payment intent via edge function
       const response = await fetch(
-        'https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/create-payment-intent',
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-payment-intent`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${freshToken}`,
+            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
           },
           body: JSON.stringify({
             amount: selectedBundle.price * 100,
@@ -200,9 +206,10 @@ export default function BuyCreditsScreen() {
         await supabase.from('credit_transactions').insert({
           user_id: userId,
           amount: selectedBundle.credits,
-          type: 'purchase',
+          transaction_type: 'purchase',
           description: `Purchased ${selectedBundle.label || selectedBundle.credits + ' Credits'}`,
-          price_paid: selectedBundle.price,
+          payment_amount: selectedBundle.price,
+          payment_method: 'stripe',
         });
       } catch (txError) {
         console.warn('Could not record transaction:', txError);
@@ -275,7 +282,7 @@ export default function BuyCreditsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.navy} />
+          <ActivityIndicator size="large" color={colors.charcoal} />
         </View>
       </SafeAreaView>
     );
@@ -286,7 +293,7 @@ export default function BuyCreditsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.navy} />
+          <Ionicons name="arrow-back" size={24} color={colors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Buy Credits</Text>
         <View style={styles.headerSpacer} />
@@ -410,7 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   backButton: {
     padding: spacing.sm,
@@ -419,7 +426,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -432,7 +439,7 @@ const styles = StyleSheet.create({
 
   // Balance Card
   balanceCard: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
     borderRadius: 16,
     padding: spacing.lg,
     marginBottom: spacing.xl,
@@ -454,7 +461,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.md,
     marginTop: spacing.md,
   },
@@ -472,7 +479,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   featuredCard: {
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
     borderWidth: 3,
   },
   selectedCard: {
@@ -489,7 +496,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   featuredBadge: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
   },
   labelText: {
     fontSize: 10,
@@ -505,7 +512,7 @@ const styles = StyleSheet.create({
   creditsAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.xs,
   },
   priceRow: {
@@ -531,7 +538,7 @@ const styles = StyleSheet.create({
 
   // Founding Member Card
   foundingCard: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
     borderRadius: 16,
     padding: spacing.lg,
     borderWidth: 3,
@@ -553,7 +560,7 @@ const styles = StyleSheet.create({
   foundingBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     letterSpacing: 1,
   },
   foundingCheckmark: {
@@ -608,12 +615,12 @@ const styles = StyleSheet.create({
   },
   benefitText: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     fontWeight: '500',
   },
   benefitDivider: {
     height: 1,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.charcoal10,
   },
 
   // Footer
@@ -624,7 +631,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: colors.cream,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
     padding: spacing.lg,
     paddingBottom: spacing.xl,
   },
@@ -637,7 +644,7 @@ const styles = StyleSheet.create({
   footerCredits: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   footerPrice: {
     fontSize: 24,

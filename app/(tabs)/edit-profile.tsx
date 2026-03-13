@@ -19,7 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
-import { colors, spacing } from '../../src/theme';
+import { colors } from '../../src/theme/colors';
+import { spacing } from '../../src/theme';
 import { useHaptics } from '../../src/hooks/useHaptics';
 
 // Preference options matching website
@@ -204,7 +205,7 @@ const SectionHeader: React.FC<{
     <Ionicons
       name={expanded ? 'chevron-up' : 'chevron-down'}
       size={20}
-      color={colors.navy}
+      color={colors.charcoal}
     />
   </TouchableOpacity>
 );
@@ -505,7 +506,7 @@ export default function EditProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.navy} />
+        <ActivityIndicator size="large" color={colors.charcoal} />
       </SafeAreaView>
     );
   }
@@ -515,7 +516,7 @@ export default function EditProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.navy} />
+          <Ionicons name="chevron-back" size={24} color={colors.charcoal} />
           <Text style={styles.headerButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -540,7 +541,7 @@ export default function EditProfileScreen() {
             >
               {uploadingPhoto ? (
                 <View style={styles.avatarPlaceholder}>
-                  <ActivityIndicator size="small" color={colors.navy} />
+                  <ActivityIndicator size="small" color={colors.charcoal} />
                 </View>
               ) : profile.photo_url ? (
                 <Image
@@ -662,9 +663,9 @@ export default function EditProfileScreen() {
                   step={1}
                   value={profile.default_preferences.temperature}
                   onValueChange={(value) => updateSuitePreference('temperature', value)}
-                  minimumTrackTintColor={colors.navy}
-                  maximumTrackTintColor={colors.lightGray}
-                  thumbTintColor={colors.navy}
+                  minimumTrackTintColor={colors.charcoal}
+                  maximumTrackTintColor={colors.charcoal10}
+                  thumbTintColor={colors.charcoal}
                 />
                 <Text style={styles.sliderValue}>{profile.default_preferences.temperature}°F</Text>
               </View>
@@ -699,7 +700,7 @@ export default function EditProfileScreen() {
                 <Switch
                   value={profile.default_preferences.heated_seat}
                   onValueChange={(value) => updateSuitePreference('heated_seat', value)}
-                  trackColor={{ false: colors.lightGray, true: colors.navy }}
+                  trackColor={{ false: colors.charcoal10, true: colors.charcoal }}
                   thumbColor={colors.white}
                 />
                 <Text style={styles.switchLabel}>
@@ -803,7 +804,7 @@ export default function EditProfileScreen() {
               <Ionicons
                 name={expandedSections.quickVisitSamples ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color={colors.navy}
+                color={colors.charcoal}
               />
             </TouchableOpacity>
             {expandedSections.quickVisitSamples && (
@@ -902,7 +903,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderBottomColor: colors.charcoal10,
   },
   headerButton: {
     flexDirection: 'row',
@@ -910,13 +911,13 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 16,
-    color: colors.navy,
+    color: colors.charcoal,
     marginLeft: spacing.xs,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   headerSpacer: {
     width: 70,
@@ -941,14 +942,14 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: `${colors.navy}15`,
+    backgroundColor: `${colors.charcoal}15`,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
     fontSize: 36,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -975,7 +976,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
     overflow: 'hidden',
   },
   sectionHeader: {
@@ -992,7 +993,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.charcoal,
     letterSpacing: 0.5,
   },
   sectionSubtitle: {
@@ -1004,7 +1005,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.charcoal10,
     paddingTop: spacing.sm,
   },
 
@@ -1015,7 +1016,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.xs,
   },
   input: {
@@ -1026,7 +1027,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.black,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   textArea: {
     height: 80,
@@ -1046,7 +1047,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.charcoal10,
   },
   readOnlyText: {
     fontSize: 16,
@@ -1060,7 +1061,7 @@ const styles = StyleSheet.create({
   preferenceLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginBottom: spacing.sm,
   },
 
@@ -1076,7 +1077,7 @@ const styles = StyleSheet.create({
   sliderValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.charcoal,
     marginLeft: spacing.md,
     minWidth: 50,
   },
@@ -1088,7 +1089,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
     marginLeft: spacing.sm,
   },
 
@@ -1107,23 +1108,23 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.xs,
   },
   radioSelected: {
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
   },
   radioLabel: {
     fontSize: 14,
-    color: colors.navy,
+    color: colors.charcoal,
   },
 
   // Checkboxes
@@ -1140,17 +1141,17 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.sm,
   },
   checkboxChecked: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
   },
   checkboxLabel: {
     fontSize: 15,
-    color: colors.navy,
+    color: colors.charcoal,
   },
 
   // Sample Checkboxes (with limit enforcement)
@@ -1162,8 +1163,8 @@ const styles = StyleSheet.create({
   sampleCount: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.navy,
-    backgroundColor: `${colors.navy}15`,
+    color: colors.charcoal,
+    backgroundColor: `${colors.charcoal}15`,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: 10,
@@ -1184,14 +1185,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.navy,
+    borderColor: colors.charcoal,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   sampleCheckboxSelected: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.charcoal,
+    borderColor: colors.charcoal,
   },
   sampleCheckboxLabel: {
     fontSize: 15,
@@ -1225,7 +1226,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.md,
     borderRadius: 12,
-    backgroundColor: colors.navy,
+    backgroundColor: colors.charcoal,
     alignItems: 'center',
   },
   saveButtonDisabled: {

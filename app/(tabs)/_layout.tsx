@@ -1,38 +1,29 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Animated, Image } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useHaptics } from '../../src/hooks/useHaptics';
+import { colors, fonts } from '../../src/theme/colors';
 
 type IoniconsName = keyof typeof Ionicons.glyphMap;
 
-// Colors
-const COLORS = {
-  blue: '#286BCD',
-  cream: '#FAF4ED',
-  gray: '#6B7280',
-  white: '#FFFFFF',
-  border: '#E5E7EB',
-};
-
-// Tab configuration - order matters!
-const TAB_ORDER = ['locations', 'events', 'index', 'pass', 'profile'] as const;
+// Tab configuration - order matters! Only 4 tabs per brief
+const TAB_ORDER = ['index', 'locations', 'pass', 'profile'] as const;
 
 const TAB_CONFIG: Record<string, {
   icon: IoniconsName;
   iconOutline: IoniconsName;
   label: string;
 }> = {
-  locations: { icon: 'location', iconOutline: 'location-outline', label: 'Locations' },
-  events: { icon: 'calendar', iconOutline: 'calendar-outline', label: 'Events' },
-  index: { icon: 'home', iconOutline: 'home-outline', label: 'Home' },
-  pass: { icon: 'qr-code', iconOutline: 'qr-code-outline', label: 'Pass' },
-  profile: { icon: 'person', iconOutline: 'person-outline', label: 'Profile' },
+  index: { icon: 'home', iconOutline: 'home-outline', label: 'HOME' },
+  locations: { icon: 'calendar', iconOutline: 'calendar-outline', label: 'BOOK' },
+  pass: { icon: 'qr-code', iconOutline: 'qr-code-outline', label: 'PASS' },
+  profile: { icon: 'person', iconOutline: 'person-outline', label: 'PROFILE' },
 };
 
-// Standard Tab Button Component
+// Tab Button Component
 function TabButton({
   route,
   isFocused,
@@ -87,11 +78,11 @@ function TabButton({
         <Ionicons
           name={isFocused ? config.icon : config.iconOutline}
           size={24}
-          color={isFocused ? COLORS.blue : COLORS.gray}
+          color={isFocused ? colors.gold : colors.charcoal30}
         />
         <Text style={[
           styles.tabLabel,
-          { color: isFocused ? COLORS.blue : COLORS.gray }
+          { color: isFocused ? colors.gold : colors.charcoal30 }
         ]}>
           {config.label}
         </Text>
@@ -100,153 +91,59 @@ function TabButton({
   );
 }
 
-// Elevated Home Button Component
-function HomeButton({
-  isFocused,
-  onPress,
-}: {
-  isFocused: boolean;
-  onPress: () => void;
-}) {
-  const haptics = useHaptics();
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.92,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 8,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 8,
-    }).start();
-  };
-
-  const handlePress = () => {
-    haptics.medium();
-    onPress();
-  };
-
-  return (
-    <View style={styles.homeButtonContainer}>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Home"
-        accessibilityState={isFocused ? { selected: true } : {}}
-        onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1}
-      >
-        <Animated.View style={[
-          styles.homeButton,
-          isFocused && styles.homeButtonActive,
-          { transform: [{ scale: scaleAnim }] }
-        ]}>
-          <Image
-            source={require('../../assets/MASLOW_Round_Inverted.png')}
-            style={styles.homeButtonLogo}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// Custom TabBar with elevated center home button
+// Custom TabBar - minimal cream design
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  // Get routes in the correct order
+  // Get routes in the correct order (only visible tabs)
   const orderedRoutes = TAB_ORDER.map(name =>
     state.routes.find(r => r.name === name)
   ).filter(Boolean);
 
-  // Find home route for the elevated button
-  const homeRoute = state.routes.find(r => r.name === 'index');
-  const isHomeFocused = state.routes[state.index]?.name === 'index';
-
-  const onHomePress = () => {
-    if (homeRoute) {
-      const event = navigation.emit({
-        type: 'tabPress',
-        target: homeRoute.key,
-        canPreventDefault: true,
-      });
-      if (!isHomeFocused && !event.defaultPrevented) {
-        navigation.navigate('index');
-      }
-    }
-  };
-
   return (
-    <View style={styles.tabBarWrapper}>
-      {/* Elevated Home Button - rendered ABOVE tab bar to avoid clipping */}
-      <View style={styles.elevatedHomeWrapper} pointerEvents="box-none">
-        <HomeButton isFocused={isHomeFocused} onPress={onHomePress} />
-      </View>
+    <View style={[
+      styles.tabBarContainer,
+      { paddingBottom: insets.bottom }
+    ]}>
+      <View style={styles.tabBar}>
+        {orderedRoutes.map((route) => {
+          if (!route) return null;
 
-      {/* Main Tab Bar */}
-      <View style={[
-        styles.tabBarContainer,
-        { paddingBottom: insets.bottom }
-      ]}>
-        <View style={styles.tabBar}>
-          {orderedRoutes.map((route, index) => {
-            if (!route) return null;
+          const isFocused = state.routes[state.index]?.name === route.name;
+          const config = TAB_CONFIG[route.name];
 
-            const { options } = descriptors[route.key];
-            const isFocused = state.routes[state.index]?.name === route.name;
-            const config = TAB_CONFIG[route.name];
-            const isHomeTab = route.name === 'index';
+          if (!config) return null;
 
-            if (!config) return null;
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            const onLongPress = () => {
-              navigation.emit({
-                type: 'tabLongPress',
-                target: route.key,
-              });
-            };
-
-            // Render empty placeholder for home tab (button is above)
-            if (isHomeTab) {
-              return <View key={route.key} style={styles.homeTabPlaceholder} />;
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
             }
+          };
 
-            // Render standard tab button
-            return (
-              <TabButton
-                key={route.key}
-                route={route}
-                isFocused={isFocused}
-                onPress={onPress}
-                onLongPress={onLongPress}
-                config={config}
-              />
-            );
-          })}
-        </View>
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
+
+          return (
+            <TabButton
+              key={route.key}
+              route={route}
+              isFocused={isFocused}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              config={config}
+            />
+          );
+        })}
       </View>
     </View>
   );
@@ -260,13 +157,13 @@ export default function TabLayout() {
         headerShown: false,
       }}
     >
-      {/* Define tabs in display order */}
-      <Tabs.Screen name="locations" />
-      <Tabs.Screen name="events" />
+      {/* Primary tabs - 4 only */}
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="locations" />
       <Tabs.Screen name="pass" />
       <Tabs.Screen name="profile" />
-      {/* Hidden screens - keep for routing but hide from tabs */}
+      {/* Hidden screens - accessible from Profile or navigation */}
+      <Tabs.Screen name="events" options={{ href: null }} />
       <Tabs.Screen name="control" options={{ href: null }} />
       <Tabs.Screen name="history" options={{ href: null }} />
       <Tabs.Screen name="edit-profile" options={{ href: null }} />
@@ -284,40 +181,21 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  // Wrapper that allows home button to extend above
-  tabBarWrapper: {
-    position: 'relative',
-  },
-  // Home button wrapper - inline with other tabs
-  elevatedHomeWrapper: {
-    position: 'absolute',
-    top: 0,  // Inline with other icons (use -3 for barely elevated)
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 100,
-  },
   tabBarContainer: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.cream,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 10,
+    borderTopColor: colors.charcoal10,
   },
   tabBar: {
     flexDirection: 'row',
-    height: 70,
-    alignItems: 'flex-end',
-    paddingBottom: 8,
+    height: 60,
+    alignItems: 'center',
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 4,
+    justifyContent: 'center',
+    paddingVertical: 8,
   },
   tabButtonInner: {
     alignItems: 'center',
@@ -325,39 +203,8 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 10,
-    fontWeight: '500',
+    fontFamily: fonts.sansSemiBold,
     marginTop: 4,
-    letterSpacing: 0.2,
-  },
-
-  // Home button placeholder maintains spacing in tab bar
-  homeTabPlaceholder: {
-    flex: 1,
-  },
-
-  // Home button container (no longer needs absolute positioning)
-  homeButtonContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  homeButton: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  homeButtonActive: {
-    // No background change needed - logo handles it
-  },
-  homeButtonLogo: {
-    width: 54,
-    height: 54,
+    letterSpacing: 1,
   },
 });
