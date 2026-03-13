@@ -18,6 +18,10 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"],
+        "com.apple.developer.in-app-payments": ["merchant.nyc.maslow"]
       }
     },
     "android": {
