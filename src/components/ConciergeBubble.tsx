@@ -149,7 +149,7 @@ export function ConciergeBubble({ userId }: ConciergeBubbleProps) {
           >
             {/* Maslow Logo */}
             <Image
-              source={require('../../assets/MASLOW_Round_Inverted.png')}
+              source={require('../../assets/splash-icon.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

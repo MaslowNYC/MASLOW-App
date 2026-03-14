@@ -173,7 +173,7 @@ export default function HomeScreen() {
         {/* Header: Logo left-aligned */}
         <View style={styles.header}>
           <Image
-            source={require('../../assets/MASLOW_Round_Inverted.png')}
+            source={require('../../assets/splash-icon.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />

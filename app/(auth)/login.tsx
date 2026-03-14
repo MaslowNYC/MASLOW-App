@@ -572,7 +572,7 @@ export default function AuthScreen() {
             >
               <View style={styles.logoCircle}>
                 <Image
-                  source={require('../../assets/MASLOW_Round_Inverted.png')}
+                  source={require('../../assets/splash-icon.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />

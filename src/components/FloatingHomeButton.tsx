@@ -35,7 +35,7 @@ export function FloatingHomeButton() {
         activeOpacity={0.8}
       >
         <Image
-          source={require('../../assets/maslow-logo.png')}
+          source={require('../../assets/splash-icon.png')}
           style={styles.logo}
           resizeMode="contain"
         />

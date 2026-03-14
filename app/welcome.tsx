@@ -84,7 +84,7 @@ export default function WelcomeScreen() {
             {/* Round Logo */}
             <View style={styles.logoContainer}>
               <Image
-                source={require('../assets/MASLOW_Round_Inverted.png')}
+                source={require('../assets/splash-icon.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />

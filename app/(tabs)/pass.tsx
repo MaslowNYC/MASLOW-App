@@ -129,7 +129,7 @@ export default function PassScreen() {
         {/* Logo - centered, small */}
         <View style={styles.logoSection}>
           <Image
-            source={require('../../assets/MASLOW_Round_Inverted.png')}
+            source={require('../../assets/splash-icon.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />
