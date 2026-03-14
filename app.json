@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "scheme": "maslow",
     "splash": {
-      "image": "./assets/MASLOW__Square.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F8F7F4"
     },
