@@ -19,6 +19,11 @@
     "production": {
       "ios": {
         "ascAppId": "6758640984"
+      },
+      "android": {
+        "serviceAccountKeyPath": "/Users/patrickmay/Library/Mobile Documents/com~apple~CloudDocs/Maslow/06_Business_Docs:/IT/Google play/maslow-n-y-c-a6kbio-efcbe428365b.json",
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }

@@ -1,0 +1,19 @@
+# MASLOW-App — Cline/Cursor Rules
+
+## EAS Build + Submit (CRITICAL)
+Building and submitting to TestFlight are TWO SEPARATE STEPS.
+
+- `eas build --platform ios --profile production` → compiles the IPA only
+- `eas submit --platform ios --latest` → submits the most recent build to Apple
+
+NEVER rebuild just to resubmit. If a build already exists, use `eas submit --latest`.
+Do NOT chain build + submit automatically unless explicitly asked.
+After a successful submit, confirm to the user: "Submitted build [number] to Apple. TestFlight email typically arrives within 30-60 minutes."
+
+## Commit Messages
+Do NOT add "Co-Authored-By: Claude" or any Co-Authored-By lines to commit messages.
+
+## General
+- MVP first. Do not add unrequested features.
+- Always confirm scope before starting large changes.
+- Ask before installing new packages.
