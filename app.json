@@ -8,9 +8,9 @@
     "userInterfaceStyle": "light",
     "scheme": "maslow",
     "splash": {
-      "image": "./assets/Maslow_1.png",
+      "image": "./assets/MASLOW__Square.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAF4ED"
+      "backgroundColor": "#F8F7F4"
     },
     "ios": {
       "supportsTablet": true,
