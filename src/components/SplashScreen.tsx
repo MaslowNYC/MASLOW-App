@@ -4,8 +4,8 @@ import {
   Animated,
   StyleSheet,
   Dimensions,
-  Text,
 } from 'react-native';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 
 type SplashVariant = 'authenticated' | 'unauthenticated' | null;
 
@@ -17,40 +17,42 @@ interface SplashScreenProps {
 
 const { width, height } = Dimensions.get('window');
 
-const CREAM = '#FAF4ED';
-const FADE_IN = 600;
-const HOLD = 400;
-const FADE_OUT = 400;
+const BACKGROUND = '#F8F7F4';
+const HOLD = 800;
+const FADE_OUT = 500;
 
 export default function SplashScreen({ onFinish, onStart }: SplashScreenProps) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    onStart?.();
+    const startAnimation = async () => {
+      onStart?.();
 
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: FADE_IN,
-        useNativeDriver: true,
-      }),
-      Animated.delay(HOLD),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: FADE_OUT,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onFinish();
-    });
+      // Hide native splash now that custom splash is mounted with matching background
+      await ExpoSplashScreen.hideAsync();
+
+      // Hold the wordmark, then fade out the entire splash
+      Animated.sequence([
+        Animated.delay(HOLD),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: FADE_OUT,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        onFinish();
+      });
+    };
+
+    startAnimation();
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Animated.Text style={[styles.wordmark, { opacity: fadeAnim }]}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+      <Animated.Text style={styles.wordmark}>
         MASLOW
       </Animated.Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -61,7 +63,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: width,
     height: height,
-    backgroundColor: CREAM,
+    backgroundColor: BACKGROUND,
   },
   wordmark: {
     fontFamily: 'CormorantGaramond_400Regular',

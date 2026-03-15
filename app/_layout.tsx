@@ -4,10 +4,14 @@ import { View, StyleSheet } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import * as Linking from 'expo-linking';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts, CormorantGaramond_400Regular, CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { Jost_400Regular, Jost_600SemiBold } from '@expo-google-fonts/jost';
 import { supabase, getSafeSession, clearAuthState } from '../lib/supabase';
 import SplashScreen from '../src/components/SplashScreen';
+
+// Keep native splash visible until we're ready
+ExpoSplashScreen.preventAutoHideAsync();
 import { ConciergeBubble, AccessibilityQuestionnaire, PreferencesModal } from '../src/components';
 import { AccessibilityProvider } from '../src/context/AccessibilityContext';
 import { ConciergeProvider } from '../src/context/ConciergeContext';
@@ -243,9 +247,11 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F7F4',
   },
   splashOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 999,
+    backgroundColor: '#F8F7F4',
   },
 });
