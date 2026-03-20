@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(else echo:*)",
+      "Bash(chmod +x \"/Users/patrickmay/Library/Mobile Documents/com~apple~CloudDocs/Maslow/MASLOW-App/scripts/setup-wallet-pass.sh\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

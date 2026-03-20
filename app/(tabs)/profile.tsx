@@ -153,10 +153,16 @@ export default function AccountScreen() {
     setWalletLoading(true);
 
     try {
-      // Get the current session for auth
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        throw new Error('Please sign in to add your pass');
+      // Force token refresh by calling getUser() - getSession() can return expired tokens
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Please sign in again');
+      }
+
+      // Get the refreshed session for the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please sign in again');
       }
 
       // Call the edge function to generate the .pkpass file
