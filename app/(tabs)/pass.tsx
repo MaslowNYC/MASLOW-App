@@ -9,10 +9,13 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { colors, fonts, shape } from '../../src/theme/colors';
 import { spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
@@ -99,15 +102,95 @@ export default function PassScreen() {
     }, [])
   );
 
-  const handleAddToWallet = () => {
+  const [walletLoading, setWalletLoading] = useState(false);
+
+  const handleAddToWallet = async () => {
     haptics.medium();
-    Alert.alert(
-      i18n.t('comingSoon'),
-      Platform.OS === 'ios'
-        ? i18n.t('walletComingSoonIOS')
-        : i18n.t('walletComingSoonAndroid'),
-      [{ text: i18n.t('ok') }]
-    );
+
+    // Google Wallet not yet supported
+    if (Platform.OS === 'android') {
+      Alert.alert(
+        i18n.t('comingSoon'),
+        i18n.t('walletComingSoonAndroid'),
+        [{ text: i18n.t('ok') }]
+      );
+      return;
+    }
+
+    setWalletLoading(true);
+
+    try {
+      // Get the current session for auth
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Please sign in to add your pass');
+      }
+
+      // Call the edge function to generate the .pkpass file
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-wallet-pass`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate pass');
+      }
+
+      // Get the .pkpass file data
+      const pkpassBlob = await response.blob();
+      const pkpassBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(pkpassBlob);
+      });
+
+      // Save to local file system
+      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
+      await FileSystem.writeAsStringAsync(fileUri, pkpassBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // On iOS, open the file to trigger Apple Wallet prompt
+      if (Platform.OS === 'ios') {
+        // Check if we can share (which will open in Wallet on iOS)
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/vnd.apple.pkpass',
+            dialogTitle: 'Add to Apple Wallet',
+          });
+        } else {
+          // Fallback: try to open directly
+          const canOpen = await Linking.canOpenURL(fileUri);
+          if (canOpen) {
+            await Linking.openURL(fileUri);
+          } else {
+            throw new Error('Unable to open wallet pass');
+          }
+        }
+      }
+
+      haptics.success();
+    } catch (error) {
+      console.error('Error adding to wallet:', error);
+      haptics.error();
+      Alert.alert(
+        'Unable to Add Pass',
+        error instanceof Error ? error.message : 'Please try again later.',
+        [{ text: i18n.t('ok') }]
+      );
+    } finally {
+      setWalletLoading(false);
+    }
   };
 
   if (dataLoading) {
@@ -162,15 +245,20 @@ export default function PassScreen() {
         {/* Wallet Buttons */}
         <View style={styles.walletRow}>
           <TouchableOpacity
-            style={styles.walletButton}
+            style={[styles.walletButton, walletLoading && styles.walletButtonDisabled]}
             onPress={handleAddToWallet}
             activeOpacity={0.8}
+            disabled={walletLoading}
           >
-            <Image
-              source={require('../../assets/add-to-apple-wallet-logo.png')}
-              style={styles.walletBadge}
-              resizeMode="contain"
-            />
+            {walletLoading && Platform.OS === 'ios' ? (
+              <ActivityIndicator size="small" color={colors.charcoal} />
+            ) : (
+              <Image
+                source={require('../../assets/add-to-apple-wallet-logo.png')}
+                style={styles.walletBadge}
+                resizeMode="contain"
+              />
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -294,6 +382,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
     borderWidth: 1,
     borderColor: colors.charcoal10,
+    minHeight: 56,
+  },
+  walletButtonDisabled: {
+    opacity: 0.6,
   },
   walletBadge: {
     width: '90%',

@@ -9,12 +9,15 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { supabase, clearAuthState } from '../../lib/supabase';
 
 // Helper to get avatar URL from filename
@@ -131,6 +134,90 @@ export default function AccountScreen() {
   const [credits, setCredits] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
+
+  // Handle adding pass to Apple Wallet
+  const handleAddToWallet = async () => {
+    haptics.medium();
+
+    // Google Wallet not yet supported
+    if (Platform.OS === 'android') {
+      Alert.alert(
+        i18n.t('comingSoon'),
+        i18n.t('walletComingSoonAndroid'),
+        [{ text: i18n.t('ok') }]
+      );
+      return;
+    }
+
+    setWalletLoading(true);
+
+    try {
+      // Get the current session for auth
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Please sign in to add your pass');
+      }
+
+      // Call the edge function to generate the .pkpass file
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-wallet-pass`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate pass');
+      }
+
+      // Get the .pkpass file data
+      const pkpassBlob = await response.blob();
+      const pkpassBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(pkpassBlob);
+      });
+
+      // Save to local file system
+      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
+      await FileSystem.writeAsStringAsync(fileUri, pkpassBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // On iOS, open the file to trigger Apple Wallet prompt
+      if (Platform.OS === 'ios') {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/vnd.apple.pkpass',
+            dialogTitle: 'Add to Apple Wallet',
+          });
+        } else {
+          throw new Error('Unable to open wallet pass');
+        }
+      }
+
+      haptics.success();
+    } catch (error) {
+      console.error('Error adding to wallet:', error);
+      haptics.error();
+      Alert.alert(
+        'Unable to Add Pass',
+        error instanceof Error ? error.message : 'Please try again later.',
+        [{ text: i18n.t('ok') }]
+      );
+    } finally {
+      setWalletLoading(false);
+    }
+  };
 
   // Fetch user profile from Supabase
   const fetchProfile = async () => {
@@ -565,6 +652,31 @@ export default function AccountScreen() {
               label={i18n.t('transferCredits')}
               onPress={() => router.push('/transfer-credits')}
             />
+            {Platform.OS === 'ios' && (
+              <>
+                <View style={styles.menuDivider} />
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleAddToWallet}
+                  activeOpacity={0.7}
+                  disabled={walletLoading}
+                >
+                  <View style={styles.menuItemLeft}>
+                    {walletLoading ? (
+                      <ActivityIndicator size="small" color={colors.gold} />
+                    ) : (
+                      <Ionicons name="wallet-outline" size={20} color={colors.charcoal} />
+                    )}
+                    <Text style={styles.menuItemLabel}>
+                      {walletLoading ? 'Generating Pass...' : 'Add to Apple Wallet'}
+                    </Text>
+                  </View>
+                  {!walletLoading && (
+                    <Ionicons name="chevron-forward" size={18} color={colors.charcoal30} />
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
           </MaslowCard>
         </View>
 
