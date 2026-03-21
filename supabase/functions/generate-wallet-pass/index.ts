@@ -4,8 +4,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
-import { encode as base64Encode, decode as base64Decode } from 'https://deno.land/std@0.177.0/encoding/base64.ts';
-import { Buffer } from 'https://deno.land/std@0.177.0/io/buffer.ts';
+
+// Base64 decode using built-in atob (no external dependencies)
+function base64Decode(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
 
 const PASS_TYPE_ID = 'pass.nyc.maslow';
 const TEAM_ID = 'KA74TN36V2';
@@ -350,8 +358,25 @@ serve(async (req) => {
       membership_tier: profile.membership_tier || 'Member'
     };
 
+    console.log('[DEBUG] memberProfile created:', JSON.stringify(memberProfile));
+
     // Generate the .pkpass file
-    const pkpassData = await createPkpass(memberProfile);
+    let pkpassData: Uint8Array;
+    try {
+      console.log('[DEBUG] Starting createPkpass...');
+      pkpassData = await createPkpass(memberProfile);
+      console.log('[DEBUG] createPkpass succeeded, size:', pkpassData.length);
+    } catch (passError) {
+      console.error('[ERROR] createPkpass failed:', passError);
+      console.error('[ERROR] Stack:', passError instanceof Error ? passError.stack : 'No stack');
+      return new Response(
+        JSON.stringify({
+          error: 'Pass generation failed',
+          details: passError instanceof Error ? passError.message : 'Unknown error'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Return the .pkpass file
     return new Response(pkpassData, {
