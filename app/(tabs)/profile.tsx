@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,7 +18,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { supabase, clearAuthState } from '../../lib/supabase';
 
 // Helper to get avatar URL from filename
@@ -200,12 +200,9 @@ export default function AccountScreen() {
 
       // On iOS, open the file to trigger Apple Wallet prompt
       if (Platform.OS === 'ios') {
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/vnd.apple.pkpass',
-            dialogTitle: 'Add to Apple Wallet',
-          });
+        const canOpen = await Linking.canOpenURL(fileUri);
+        if (canOpen) {
+          await Linking.openURL(fileUri);
         } else {
           throw new Error('Unable to open wallet pass');
         }
