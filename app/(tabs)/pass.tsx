@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { colors, fonts, shape } from '../../src/theme/colors';
 import { spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
@@ -122,6 +121,7 @@ export default function PassScreen() {
     try {
       // Force token refresh by calling getUser() - getSession() can return expired tokens
       const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('[DEBUG] getUser result:', { user: user?.id, email: user?.email, error: userError });
       if (userError || !user) {
         throw new Error('Please sign in again');
       }
@@ -134,12 +134,18 @@ export default function PassScreen() {
 
       // Call the edge function to generate the .pkpass file
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const headers = {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      };
+      console.log('[DEBUG] Fetch headers:', {
+        url: `${supabaseUrl}/functions/v1/generate-wallet-pass`,
+        headers,
+        tokenPreview: session.access_token?.substring(0, 20) + '...'
+      });
       const response = await fetch(`${supabaseUrl}/functions/v1/generate-wallet-pass`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -167,21 +173,11 @@ export default function PassScreen() {
 
       // On iOS, open the file to trigger Apple Wallet prompt
       if (Platform.OS === 'ios') {
-        // Check if we can share (which will open in Wallet on iOS)
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/vnd.apple.pkpass',
-            dialogTitle: 'Add to Apple Wallet',
-          });
+        const canOpen = await Linking.canOpenURL(fileUri);
+        if (canOpen) {
+          await Linking.openURL(fileUri);
         } else {
-          // Fallback: try to open directly
-          const canOpen = await Linking.canOpenURL(fileUri);
-          if (canOpen) {
-            await Linking.openURL(fileUri);
-          } else {
-            throw new Error('Unable to open wallet pass');
-          }
+          throw new Error('Unable to open wallet pass');
         }
       }
 
