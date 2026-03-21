@@ -153,17 +153,14 @@ export default function PassScreen() {
         throw new Error(errorData.error || 'Failed to generate pass');
       }
 
-      // Get the .pkpass file data
-      const pkpassBlob = await response.blob();
-      const pkpassBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(pkpassBlob);
-      });
+      // Get the .pkpass file data (React Native compatible - no FileReader)
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const pkpassBase64 = btoa(binary);
 
       // Save to local file system
       const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
