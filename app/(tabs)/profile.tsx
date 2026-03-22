@@ -165,8 +165,8 @@ export default function AccountScreen() {
         throw new Error('Please sign in again');
       }
 
-      // Call the Vercel API to generate the .pkpass file
-      const response = await fetch('https://maslow.nyc/api/generate-wallet-pass', {
+      // Call the Supabase edge function to generate the .pkpass file
+      const response = await fetch('https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -175,23 +175,20 @@ export default function AccountScreen() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json();
         throw new Error(errorData.message || errorData.details || errorData.error || 'Failed to generate pass');
       }
 
-      // Get the .pkpass file data (React Native compatible - no FileReader)
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-      }
-      const pkpassBase64 = btoa(binary);
+      const blob = await response.blob();
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(blob);
+      });
 
-      // Save to local file system and present via share sheet
       const fileUri = FileSystem.cacheDirectory + 'maslow-pass.pkpass';
-      await FileSystem.writeAsStringAsync(fileUri, pkpassBase64, {
-        encoding: 'base64',
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/vnd.apple.pkpass',
