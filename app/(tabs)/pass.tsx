@@ -9,12 +9,12 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
-  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { colors, fonts, shape } from '../../src/theme/colors';
 import { spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
@@ -162,21 +162,15 @@ export default function PassScreen() {
       }
       const pkpassBase64 = btoa(binary);
 
-      // Save to local file system
-      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
+      // Save to local file system and present via share sheet
+      const fileUri = FileSystem.cacheDirectory + 'maslow-pass.pkpass';
       await FileSystem.writeAsStringAsync(fileUri, pkpassBase64, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
-
-      // On iOS, open the file to trigger Apple Wallet prompt
-      if (Platform.OS === 'ios') {
-        const canOpen = await Linking.canOpenURL(fileUri);
-        if (canOpen) {
-          await Linking.openURL(fileUri);
-        } else {
-          throw new Error('Unable to open wallet pass');
-        }
-      }
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/vnd.apple.pkpass',
+        UTI: 'com.apple.pkpass',
+      });
 
       haptics.success();
     } catch (error) {
