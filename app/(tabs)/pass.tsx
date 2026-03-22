@@ -150,7 +150,7 @@ export default function PassScreen() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate pass');
+        throw new Error(errorData.message || errorData.details || errorData.error || 'Failed to generate pass');
       }
 
       // Get the .pkpass file data (React Native compatible - no FileReader)
