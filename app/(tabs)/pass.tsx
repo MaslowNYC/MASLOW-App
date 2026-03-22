@@ -132,18 +132,18 @@ export default function PassScreen() {
         throw new Error('Please sign in again');
       }
 
-      // Call the edge function to generate the .pkpass file
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      // Call the Vercel API to generate the .pkpass file
+      const walletPassUrl = 'https://maslow.nyc/api/generate-wallet-pass';
       const headers = {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       };
       console.log('[DEBUG] Fetch headers:', {
-        url: `${supabaseUrl}/functions/v1/generate-wallet-pass`,
+        url: walletPassUrl,
         headers,
         tokenPreview: session.access_token?.substring(0, 20) + '...'
       });
-      const response = await fetch(`${supabaseUrl}/functions/v1/generate-wallet-pass`, {
+      const response = await fetch(walletPassUrl, {
         method: 'POST',
         headers,
       });
