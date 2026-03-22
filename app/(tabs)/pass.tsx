@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -164,10 +165,16 @@ export default function PassScreen() {
       await FileSystem.writeAsStringAsync(fileUri, base64, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/vnd.apple.pkpass',
-        UTI: 'com.apple.pkpass',
-      });
+      // Open directly in Wallet instead of share sheet
+      const supported = await Linking.canOpenURL('shoebox://');
+      if (supported) {
+        await Linking.openURL(fileUri);
+      } else {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/vnd.apple.pkpass',
+          UTI: 'com.apple.pkpass',
+        });
+      }
 
       haptics.success();
     } catch (error) {
