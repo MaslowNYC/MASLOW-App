@@ -1,0 +1,2 @@
+[functions.generate-wallet-pass]
+verify_jwt = false
