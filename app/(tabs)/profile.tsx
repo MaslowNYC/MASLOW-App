@@ -133,46 +133,13 @@ export default function AccountScreen() {
   const [credits, setCredits] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [walletLoading, setWalletLoading] = useState(false);
 
   // Handle adding pass to Apple Wallet
-  const handleAddToWallet = async () => {
-    haptics.medium();
-
-    // Google Wallet not yet supported
-    if (Platform.OS === 'android') {
-      Alert.alert(
-        i18n.t('comingSoon'),
-        i18n.t('walletComingSoonAndroid'),
-        [{ text: i18n.t('ok') }]
-      );
-      return;
-    }
-
-    setWalletLoading(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not logged in');
-
-      const passUrl = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass`;
-
-      await Linking.openURL(
-        `${passUrl}?token=${session.access_token}`
-      );
-
-      haptics.success();
-    } catch (error) {
-      console.error('Error adding to wallet:', error);
-      haptics.error();
-      Alert.alert(
-        'Unable to Add Pass',
-        error instanceof Error ? error.message : 'Please try again later.',
-        [{ text: i18n.t('ok') }]
-      );
-    } finally {
-      setWalletLoading(false);
-    }
+  const handleAppleWallet = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const url = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass?token=${session.access_token}`;
+    await Linking.openURL(url);
   };
 
   // Fetch user profile from Supabase
@@ -613,23 +580,14 @@ export default function AccountScreen() {
                 <View style={styles.menuDivider} />
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={handleAddToWallet}
+                  onPress={handleAppleWallet}
                   activeOpacity={0.7}
-                  disabled={walletLoading}
                 >
                   <View style={styles.menuItemLeft}>
-                    {walletLoading ? (
-                      <ActivityIndicator size="small" color={colors.gold} />
-                    ) : (
-                      <Ionicons name="wallet-outline" size={20} color={colors.charcoal} />
-                    )}
-                    <Text style={styles.menuItemLabel}>
-                      {walletLoading ? 'Generating Pass...' : 'Add to Apple Wallet'}
-                    </Text>
+                    <Ionicons name="wallet-outline" size={20} color={colors.charcoal} />
+                    <Text style={styles.menuItemLabel}>Add to Apple Wallet</Text>
                   </View>
-                  {!walletLoading && (
-                    <Ionicons name="chevron-forward" size={18} color={colors.charcoal30} />
-                  )}
+                  <Ionicons name="chevron-forward" size={18} color={colors.charcoal30} />
                 </TouchableOpacity>
               </>
             )}

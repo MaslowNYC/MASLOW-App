@@ -7,17 +7,14 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  Platform,
   Alert,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts, shape } from '../../src/theme/colors';
 import { spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
-import { useHaptics } from '../../src/hooks/useHaptics';
 import i18n from '../../src/i18n';
 import { useLanguage } from '../../src/context/LanguageContext';
 
@@ -42,7 +39,6 @@ interface MemberData {
 }
 
 export default function PassScreen() {
-  const haptics = useHaptics();
   const { language } = useLanguage();
   const [memberData, setMemberData] = useState<MemberData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -100,45 +96,19 @@ export default function PassScreen() {
     }, [])
   );
 
-  const [walletLoading, setWalletLoading] = useState(false);
+  const handleAppleWallet = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const url = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass?token=${session.access_token}`;
+    await Linking.openURL(url);
+  };
 
-  const handleAddToWallet = async () => {
-    haptics.medium();
-
-    // Google Wallet not yet supported
-    if (Platform.OS === 'android') {
-      Alert.alert(
-        i18n.t('comingSoon'),
-        i18n.t('walletComingSoonAndroid'),
-        [{ text: i18n.t('ok') }]
-      );
-      return;
-    }
-
-    setWalletLoading(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not logged in');
-
-      const passUrl = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass`;
-
-      await Linking.openURL(
-        `${passUrl}?token=${session.access_token}`
-      );
-
-      haptics.success();
-    } catch (error) {
-      console.error('Error adding to wallet:', error);
-      haptics.error();
-      Alert.alert(
-        'Unable to Add Pass',
-        error instanceof Error ? error.message : 'Please try again later.',
-        [{ text: i18n.t('ok') }]
-      );
-    } finally {
-      setWalletLoading(false);
-    }
+  const handleGoogleWallet = () => {
+    Alert.alert(
+      i18n.t('comingSoon'),
+      i18n.t('walletComingSoonAndroid'),
+      [{ text: i18n.t('ok') }]
+    );
   };
 
   if (dataLoading) {
@@ -193,25 +163,20 @@ export default function PassScreen() {
         {/* Wallet Buttons */}
         <View style={styles.walletRow}>
           <TouchableOpacity
-            style={[styles.walletButton, walletLoading && styles.walletButtonDisabled]}
-            onPress={handleAddToWallet}
+            style={styles.walletButton}
+            onPress={handleAppleWallet}
             activeOpacity={0.8}
-            disabled={walletLoading}
           >
-            {walletLoading && Platform.OS === 'ios' ? (
-              <ActivityIndicator size="small" color={colors.charcoal} />
-            ) : (
-              <Image
-                source={require('../../assets/add-to-apple-wallet-logo.png')}
-                style={styles.walletBadge}
-                resizeMode="contain"
-              />
-            )}
+            <Image
+              source={require('../../assets/add-to-apple-wallet-logo.png')}
+              style={styles.walletBadge}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.walletButton}
-            onPress={handleAddToWallet}
+            onPress={handleGoogleWallet}
             activeOpacity={0.8}
           >
             <Image
