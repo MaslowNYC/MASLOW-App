@@ -20,7 +20,8 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { session_type_id, amount, credits, packageName } = body
+    const { session_type_id, credits, packageName } = body
+    // Note: 'amount' is intentionally not accepted from clients — prices are looked up server-side
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -39,14 +40,36 @@ serve(async (req) => {
     let paymentAmount: number
     let metadata: Record<string, string>
 
-    // Flow 1: Buy credits (amount + credits provided)
-    if (amount && credits) {
-      paymentAmount = amount // already in cents from client
+    // Flow 1: Buy credits — look up price server-side, never trust client amount
+    if (credits && packageName) {
+      const { data: pkg, error: pkgError } = await supabase
+        .from('credit_packages')
+        .select('price_cents, credits, name')
+        .eq('name', packageName)
+        .eq('is_active', true)
+        .single()
+
+      if (pkgError || !pkg) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid credit package' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Verify credits match the package (belt and suspenders)
+      if (pkg.credits !== credits) {
+        return new Response(
+          JSON.stringify({ error: 'Package mismatch' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      paymentAmount = pkg.price_cents
       metadata = {
         user_id: user.id,
         type: 'credit_purchase',
-        credits: String(credits),
-        package_name: packageName || `${credits} Credits`,
+        credits: String(pkg.credits),
+        package_name: pkg.name,
       }
     }
     // Flow 2: Book session (session_type_id provided)
