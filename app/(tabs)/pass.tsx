@@ -97,13 +97,39 @@ export default function PassScreen() {
   );
 
   const handleAppleWallet = async () => {
-    const { data: { session }, error } = await supabase.auth.refreshSession();
-    if (error || !session) {
-      console.error('Session refresh failed:', error);
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    if (sessionError || !session) {
+      console.error('Session refresh failed:', sessionError);
+      Alert.alert(i18n.t('error'), i18n.t('sessionExpired'));
       return;
     }
-    const url = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass?token=${session.access_token}`;
-    await Linking.openURL(url);
+    try {
+      const response = await fetch(
+        'https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass',
+        {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        console.error('Wallet pass generation failed:', response.status, body);
+        Alert.alert(i18n.t('error'), i18n.t('walletPassFailed'));
+        return;
+      }
+      // Convert response to base64 and open via Linking so iOS hands it to Wallet
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const dataUrl = `data:application/vnd.apple.pkpass;base64,${base64}`;
+        Linking.openURL(dataUrl);
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      console.error('Wallet pass error:', err);
+      Alert.alert(i18n.t('error'), i18n.t('walletPassFailed'));
+    }
   };
 
   const handleGoogleWallet = () => {

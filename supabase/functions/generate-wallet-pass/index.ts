@@ -22,13 +22,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Accept token from Authorization header OR query parameter
-    const authHeader = req.headers.get("Authorization") ||
-      (() => {
-        const url = new URL(req.url);
-        const token = url.searchParams.get("token");
-        return token ? `Bearer ${token}` : null;
-      })();
+    // Accept token from Authorization header only.
+    // Do NOT accept token as a query parameter — tokens in URLs appear in server logs.
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const supabase = createClient(
