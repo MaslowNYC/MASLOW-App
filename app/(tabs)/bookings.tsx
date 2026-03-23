@@ -95,11 +95,8 @@ export default function BookingsScreen() {
   // Fetch user's active Hull queue entry
   const fetchHullEntry = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data, error } = await supabase
-        .from('queue')
+      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+      if (sessionError || !session) return;
         .select('*')
         .eq('user_id', session.user.id)
         .in('status', ['waiting', 'called', 'checked_in'])
@@ -129,8 +126,8 @@ export default function BookingsScreen() {
     setHullLoading(true);
     haptics.light();
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+      if (sessionError || !session) {
         Alert.alert('Sign In Required', 'Please sign in to join the Hull queue.');
         return;
       }
@@ -164,8 +161,8 @@ export default function BookingsScreen() {
     setHullLoading(true);
     haptics.light();
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+      if (sessionError || !session) {
         Alert.alert('Sign In Required', 'Please sign in to reserve a spot.');
         return;
       }
@@ -209,8 +206,8 @@ export default function BookingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (!session) return;
+              const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+              if (sessionError || !session) return;
 
               const res = await fetch(`${HULL_QUEUE_URL}?action=cancel`, {
                 method: 'POST',
