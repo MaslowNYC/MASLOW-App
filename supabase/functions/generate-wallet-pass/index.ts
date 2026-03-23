@@ -73,9 +73,9 @@ serve(async (req) => {
       signerKey,
       wwdr,
     }, {
-      description: "Maslow NYC Membership",
+      description: "Maslow Membership",
       formatVersion: 1,
-      organizationName: "Maslow NYC",
+      organizationName: "Maslow",
       passTypeIdentifier: PASS_TYPE_ID,
       serialNumber: `maslow-${user.id.substring(0, 8)}-${Date.now()}`,
       teamIdentifier: TEAM_ID,
@@ -99,7 +99,7 @@ serve(async (req) => {
     );
 
     pass.backFields.push(
-      { key: "terms", label: "Terms", value: "This pass grants access to Maslow NYC. Present at entry. Non-transferable." },
+      { key: "terms", label: "Terms", value: "This pass grants access to Maslow. Present at entry. Non-transferable." },
       { key: "contact", label: "Contact", value: "hello@maslow.nyc" },
       { key: "website", label: "Website", value: "https://maslow.nyc" }
     );

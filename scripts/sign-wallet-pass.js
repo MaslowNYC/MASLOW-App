@@ -20,7 +20,7 @@ const archiver = require('archiver');
 
 const PASS_TYPE_ID = 'pass.nyc.maslow';
 const TEAM_ID = 'KA74TN36V2';
-const ORG_NAME = 'Maslow NYC';
+const ORG_NAME = 'Maslow';
 
 // Apple WWDR G4 certificate URL
 const WWDR_CERT_URL = 'https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer';
@@ -78,7 +78,7 @@ function createPassJson(memberName, memberNumber, tier, userId) {
     serialNumber: `maslow-${userId}-${Date.now()}`,
     teamIdentifier: TEAM_ID,
     organizationName: ORG_NAME,
-    description: 'Maslow NYC Membership',
+    description: 'Maslow Membership',
     logoText: 'MASLOW',
     foregroundColor: 'rgb(255, 255, 255)',
     backgroundColor: 'rgb(54, 69, 79)',
@@ -116,7 +116,7 @@ function createPassJson(memberName, memberNumber, tier, userId) {
         {
           key: 'terms',
           label: 'Terms',
-          value: 'This pass grants access to Maslow NYC locations. Present at entry. Non-transferable.'
+          value: 'This pass grants access to Maslow locations. Present at entry. Non-transferable.'
         },
         {
           key: 'contact',
@@ -134,7 +134,7 @@ function createPassJson(memberName, memberNumber, tier, userId) {
       {
         latitude: 40.7128,
         longitude: -74.0060,
-        relevantText: 'Welcome to Maslow NYC'
+        relevantText: 'Welcome to Maslow'
       }
     ]
   };

@@ -178,7 +178,7 @@ export default function BuyCreditsScreen() {
       // 3. Init payment sheet (Apple Pay disabled until merchant ID configured in Apple Developer)
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Maslow NYC',
+        merchantDisplayName: 'Maslow',
         style: 'automatic',
       });
 

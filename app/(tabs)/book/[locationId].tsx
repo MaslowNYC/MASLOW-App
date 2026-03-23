@@ -665,7 +665,7 @@ export default function BookingFlowScreen() {
       // 3. Init payment sheet (handles Apple Pay / Google Pay automatically)
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Maslow NYC',
+        merchantDisplayName: 'Maslow',
         style: 'automatic',
       });
 

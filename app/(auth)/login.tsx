@@ -577,7 +577,7 @@ export default function AuthScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.wordmark}>MASLOW NYC</Text>
+              <Text style={styles.wordmark}>MASLOW</Text>
               <Text style={styles.tagline}>The Infrastructure of Dignity</Text>
             </Animated.View>
 
