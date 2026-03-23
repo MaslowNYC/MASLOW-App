@@ -10,14 +10,13 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { supabase, clearAuthState } from '../../lib/supabase';
 
 // Helper to get avatar URL from filename
@@ -153,48 +152,14 @@ export default function AccountScreen() {
     setWalletLoading(true);
 
     try {
-      // Force token refresh by calling getUser() - getSession() can return expired tokens
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Please sign in again');
-      }
-
-      // Get the refreshed session for the auth token
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please sign in again');
-      }
+      if (!session) throw new Error('Not logged in');
 
-      // Call the Supabase edge function to generate the .pkpass file
-      const response = await fetch('https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const passUrl = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass`;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.details || errorData.error || 'Failed to generate pass');
-      }
-
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.readAsDataURL(blob);
-      });
-
-      const fileUri = FileSystem.cacheDirectory + 'maslow-pass.pkpass';
-      await FileSystem.writeAsStringAsync(fileUri, base64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/vnd.apple.pkpass',
-        UTI: 'com.apple.pkpass',
-        dialogTitle: 'Add to Apple Wallet',
-      });
+      await Linking.openURL(
+        `${passUrl}?token=${session.access_token}`
+      );
 
       haptics.success();
     } catch (error) {

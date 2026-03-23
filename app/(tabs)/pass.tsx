@@ -9,12 +9,11 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { colors, fonts, shape } from '../../src/theme/colors';
 import { spacing } from '../../src/theme';
 import { supabase } from '../../lib/supabase';
@@ -119,56 +118,14 @@ export default function PassScreen() {
     setWalletLoading(true);
 
     try {
-      // Force token refresh by calling getUser() - getSession() can return expired tokens
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      console.log('[DEBUG] getUser result:', { user: user?.id, email: user?.email, error: userError });
-      if (userError || !user) {
-        throw new Error('Please sign in again');
-      }
-
-      // Get the refreshed session for the auth token
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please sign in again');
-      }
+      if (!session) throw new Error('Not logged in');
 
-      // Call the Supabase edge function to generate the .pkpass file
-      const walletPassUrl = 'https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass';
-      const headers = {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      };
-      console.log('[DEBUG] Fetch headers:', {
-        url: walletPassUrl,
-        headers,
-        tokenPreview: session.access_token?.substring(0, 20) + '...'
-      });
-      const response = await fetch(walletPassUrl, {
-        method: 'POST',
-        headers,
-      });
+      const passUrl = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass`;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.details || errorData.error || 'Failed to generate pass');
-      }
-
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.readAsDataURL(blob);
-      });
-
-      const fileUri = FileSystem.cacheDirectory + 'maslow-pass.pkpass';
-      await FileSystem.writeAsStringAsync(fileUri, base64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/vnd.apple.pkpass',
-        UTI: 'com.apple.pkpass',
-        dialogTitle: 'Add to Apple Wallet',
-      });
+      await Linking.openURL(
+        `${passUrl}?token=${session.access_token}`
+      );
 
       haptics.success();
     } catch (error) {

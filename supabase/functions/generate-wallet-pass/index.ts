@@ -22,7 +22,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
+    // Accept token from Authorization header OR query parameter
+    const authHeader = req.headers.get("Authorization") ||
+      (() => {
+        const url = new URL(req.url);
+        const token = url.searchParams.get("token");
+        return token ? `Bearer ${token}` : null;
+      })();
     if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const supabase = createClient(
@@ -50,6 +56,14 @@ serve(async (req) => {
     const signerCert = Deno.env.get("APPLE_PASS_CERT_PEM")!;
     const signerKey = Deno.env.get("APPLE_PASS_KEY_PEM")!;
     const wwdr = Deno.env.get("APPLE_WWDR_CERT_PEM")!;
+
+    console.log('Certs loaded:', {
+      hasCert: !!signerCert,
+      hasKey: !!signerKey,
+      hasWwdr: !!wwdr,
+      certLength: signerCert?.length,
+      keyLength: signerKey?.length,
+    });
 
     // Dynamically import passkit-generator
     const { PKPass } = await import("https://esm.sh/passkit-generator@3");
@@ -108,8 +122,15 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Pass generation error:", error);
-    return new Response(JSON.stringify({ error: "Failed to generate pass", details: error instanceof Error ? error.message : String(error) }), {
+    console.error("Pass generation error:", JSON.stringify({
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    }));
+    return new Response(JSON.stringify({
+      error: "Failed to generate pass",
+      details: error instanceof Error ? error.message : String(error)
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
