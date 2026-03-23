@@ -97,8 +97,11 @@ export default function PassScreen() {
   );
 
   const handleAppleWallet = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    const { data: { session }, error } = await supabase.auth.refreshSession();
+    if (error || !session) {
+      console.error('Session refresh failed:', error);
+      return;
+    }
     const url = `https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass?token=${session.access_token}`;
     await Linking.openURL(url);
   };
