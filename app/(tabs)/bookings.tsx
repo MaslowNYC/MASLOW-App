@@ -97,6 +97,8 @@ export default function BookingsScreen() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
       if (sessionError || !session) return;
+      const { data, error } = await supabase
+        .from('hull_queue')
         .select('*')
         .eq('user_id', session.user.id)
         .in('status', ['waiting', 'called', 'checked_in'])
@@ -340,10 +342,10 @@ export default function BookingsScreen() {
               }
 
               // Call the cancel function
-              const { data, error } = await supabase.rpc('cancel_and_refund_booking', {
+              const { data, error } = await (supabase.rpc as any)('cancel_and_refund_booking', {
                 p_booking_id: booking.id,
                 p_user_id: user.id
-              });
+              }) as { data: { success: boolean; message?: string; refunded_credits?: number; error?: string } | null; error: any };
 
               if (error) {
                 console.error('Cancel error:', error);
@@ -352,7 +354,7 @@ export default function BookingsScreen() {
               }
 
               // Check the result
-              if (data && data.success) {
+              if (data?.success) {
                 haptics.success();
                 Alert.alert(
                   'Booking Cancelled',
