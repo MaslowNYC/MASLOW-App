@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
-  Linking,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts, shape } from '../../src/theme/colors';
@@ -100,35 +101,52 @@ export default function PassScreen() {
     const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
     if (sessionError || !session) {
       console.error('Session refresh failed:', sessionError);
-      Alert.alert(i18n.t('error'), i18n.t('sessionExpired'));
+      Alert.alert(i18n.t('error'), 'Please log in again to add your pass to Apple Wallet.');
       return;
     }
     try {
       const response = await fetch(
-        'https://hrfmphkjeqcwhsfvzfvw.supabase.co/functions/v1/generate-wallet-pass',
+        'https://maslow.nyc/api/generate-wallet-pass',
         {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${session.access_token}` },
         }
       );
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
+        const body = await response.text().catch(() => '');
         console.error('Wallet pass generation failed:', response.status, body);
-        Alert.alert(i18n.t('error'), i18n.t('walletPassFailed'));
+        Alert.alert(i18n.t('error'), 'Could not generate your wallet pass. Please try again.');
         return;
       }
-      // Convert response to base64 and open via Linking so iOS hands it to Wallet
       const blob = await response.blob();
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const dataUrl = `data:application/vnd.apple.pkpass;base64,${base64}`;
-        Linking.openURL(dataUrl);
-      };
-      reader.readAsDataURL(blob);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result.split(',')[1] || reader.result);
+          } else {
+            reject(new Error('FileReader did not return a string'));
+          }
+        };
+        reader.onerror = () => reject(new Error('FileReader error'));
+        reader.readAsDataURL(blob);
+      });
+      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/vnd.apple.pkpass',
+          UTI: 'com.apple.pkpass',
+        });
+      } else {
+        Alert.alert(i18n.t('error'), 'Sharing is not available on this device.');
+      }
     } catch (err) {
       console.error('Wallet pass error:', err);
-      Alert.alert(i18n.t('error'), i18n.t('walletPassFailed'));
+      Alert.alert(i18n.t('error'), 'Something went wrong. Please try again.');
     }
   };
 
