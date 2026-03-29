@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Linking,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts, shape } from '../../src/theme/colors';
@@ -105,26 +104,8 @@ export default function PassScreen() {
       return;
     }
     try {
-      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
-      const download = await FileSystem.downloadAsync(
-        'https://maslow.nyc/api/generate-wallet-pass',
-        fileUri,
-        { headers: { 'Authorization': `Bearer ${session.access_token}` } }
-      );
-      if (download.status !== 200) {
-        console.error('Wallet pass download failed:', download.status);
-        Alert.alert(i18n.t('error'), 'Could not generate your wallet pass. Please try again.');
-        return;
-      }
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/vnd.apple.pkpass',
-          UTI: 'com.apple.pkpass',
-        });
-      } else {
-        Alert.alert(i18n.t('error'), 'Sharing is not available on this device.');
-      }
+      const url = `https://maslow.nyc/api/generate-wallet-pass?token=${session.access_token}`;
+      await Linking.openURL(url);
     } catch (err) {
       console.error('Wallet pass error:', err);
       Alert.alert(i18n.t('error'), 'Something went wrong. Please try again.');
