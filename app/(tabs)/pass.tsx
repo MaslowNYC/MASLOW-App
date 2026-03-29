@@ -105,36 +105,17 @@ export default function PassScreen() {
       return;
     }
     try {
-      const response = await fetch(
+      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
+      const download = await FileSystem.downloadAsync(
         'https://maslow.nyc/api/generate-wallet-pass',
-        {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${session.access_token}` },
-        }
+        fileUri,
+        { headers: { 'Authorization': `Bearer ${session.access_token}` } }
       );
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        console.error('Wallet pass generation failed:', response.status, body);
+      if (download.status !== 200) {
+        console.error('Wallet pass download failed:', download.status);
         Alert.alert(i18n.t('error'), 'Could not generate your wallet pass. Please try again.');
         return;
       }
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result.split(',')[1] || reader.result);
-          } else {
-            reject(new Error('FileReader did not return a string'));
-          }
-        };
-        reader.onerror = () => reject(new Error('FileReader error'));
-        reader.readAsDataURL(blob);
-      });
-      const fileUri = `${FileSystem.cacheDirectory}maslow-pass.pkpass`;
-      await FileSystem.writeAsStringAsync(fileUri, base64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(fileUri, {
